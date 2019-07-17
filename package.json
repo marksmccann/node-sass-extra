@@ -1,0 +1,59 @@
+{
+  "name": "node-sass-extra",
+  "version": "0.0.1",
+  "description": "A light wrapper around node-sass to provide support for globs, promises and more.",
+  "main": "index.js",
+  "scripts": {
+    "format": "prettier --write \"*.js\"",
+    "lint": "eslint \"*.js\"",
+    "test": "jest --coverage"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/marksmccann/node-sass-extra.git"
+  },
+  "keywords": [
+    "node",
+    "sass",
+    "compile",
+    "promise",
+    "glob"
+  ],
+  "author": "McCann & Luther",
+  "contributors": [
+    {
+      "name": "Mark McCann",
+      "email": "marksmccann@gmail.com",
+      "url": "http://markmccann.me/"
+    },
+    {
+      "name": "Phillip Luther",
+      "email": "dev@phillipluther.com",
+      "url": "http://phillipluther.com/"
+    }
+  ],
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/marksmccann/node-sass-extra/issues"
+  },
+  "homepage": "https://github.com/marksmccann/node-sass-extra#readme",
+  "dependencies": {
+    "node-sass": "^4.12.0"
+  },
+  "devDependencies": {
+    "eslint": "^6.0.1",
+    "husky": "^3.0.0",
+    "jest": "^24.8.0",
+    "lint-staged": "^9.2.0",
+    "prettier": "1.18.2"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged",
+      "pre-push": "npm run lint"
+    }
+  },
+  "lint-staged": {
+    "*.js": "prettier --write"
+  }
+}
