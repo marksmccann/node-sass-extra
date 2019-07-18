@@ -40,6 +40,8 @@
   },
   "homepage": "https://github.com/marksmccann/node-sass-extra#readme",
   "dependencies": {
+    "fs-extra": "^8.1.0",
+    "glob": "^7.1.4",
     "node-sass": "^4.12.0"
   },
   "devDependencies": {
