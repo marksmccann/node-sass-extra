@@ -1,20 +1,47 @@
 const path = require('path');
 const fs = require('fs-extra');
+const glob = require('glob');
 const sass = require('node-sass');
 
 // utility for determining whether a given path is a file (with a supported extension) or not
 function isFile(filePath) {
     // TODO: should we harden this? it'll work fine for matching my.css, my.scss, and my.sass ...
     // but it'll also match my.ass
-    return /\.s?(c|a)ss$/.test(filePath);
+    return /\.(s[ca]|c)ss$/.test(filePath);
+}
+
+// takes a single source or array of sources and returns a list of files to be compiled; sources
+// can be file paths or globs
+async function getSourceFiles(sources) {
+    const sourcePaths = [].concat(sources);
+    const sourceFiles = await Promise.all(
+        sourcePaths.map(
+            sourcePath =>
+                new Promise((resolve, reject) => {
+                    glob(sourcePath, (err, sourceFiles) => {
+                        if (err) {
+                            /* istanbul ignore next */
+                            reject(err);
+                        }
+
+                        resolve(sourceFiles);
+                    });
+                })
+        )
+    );
+
+    // flatten the list of source files, as it will be an array of arrays from the above ... since
+    // we support both file paths and globs, any single `file` entry could be either 1 or N files
+    return sourceFiles.reduce((flattened, fileList) => {
+        return flattened.concat(fileList);
+    }, []);
 }
 
 // compiles a given source (file or string) to CSS via node-sass; returns a promise
-function compile(source, options) {
-    const filePath = path.resolve(source);
-    const sourceObj = isFile(filePath)
-        ? { file: filePath }
-        : { data: filePath };
+async function compile(source, options) {
+    const sourceObj = isFile(source)
+        ? { file: path.resolve(__dirname, source) }
+        : { data: source };
 
     return new Promise((resolve, reject) => {
         sass.render(
@@ -24,6 +51,7 @@ function compile(source, options) {
             },
             (err, result) => {
                 if (err) {
+                    /* istanbul ignore next */
                     reject(err);
                 }
 
@@ -39,6 +67,7 @@ async function writeFile(css, filePath) {
         await fs.ensureDir(path.dirname(filePath));
         return fs.writeFile(filePath.replace(/\.s(c|a)ss$/, '.css'), css);
     } catch (err) {
+        /* istanbul ignore next */
         Promise.reject(err);
     }
 }
@@ -47,9 +76,8 @@ async function writeFile(css, filePath) {
 async function render(userOptions = {}) {
     try {
         const { data, file, output } = userOptions;
-        const sources = file || data;
 
-        if (!sources) {
+        if (!file && !data) {
             throw new Error('Either a "data" or "file" option is required.');
         }
 
@@ -61,10 +89,12 @@ async function render(userOptions = {}) {
         delete options.file;
         delete options.output;
 
-        //
-        // NOTE:
-        // `data` is currently unsupported; working just with `file` for proof of concept
-        //
+        let sources;
+        if (file) {
+            sources = await getSourceFiles(file);
+        } else {
+            sources = data;
+        }
 
         const isSourceArray = Array.isArray(sources);
         let compiled = isSourceArray
@@ -102,7 +132,7 @@ async function render(userOptions = {}) {
         }
 
         // return the native nodeSass object(s) from compilation
-        return compiled;
+        return compiled.length === 1 ? compiled[0] : compiled;
     } catch (err) {
         console.error(err);
         throw err;
@@ -119,18 +149,36 @@ const nodeSassExtra = {
 };
 
 // dev - DELETE ME
-// nodeSassExtra.render({
-//     // compile multiple files
-//     // file: ['test-files/test.scss', 'test-files/nested/test.scss'],
+// nodeSassExtra
+//     .render({
+//         // compile multiple files
+//         // file: ['test-files/test.scss', 'test-files/nested/test.scss'],
 //
-//     // compile a single file
-//     file: 'test-files/test.scss',
+//         // compile a single file
+//         // file: 'test-files/test.scss',
 //
-//     // output to a directory
-//     // output: 'dest',
+//         // compile multiple globs
+//         // file: ['test-files/**/*.scss', 'test-files/**/*.sass'],
 //
-//     // output to a single file
-//     output: 'dest/compiled.css',
-// }).then(compiled => console.log('Done!', compiled));
+//         // compile a single glob
+//         // file: 'test-files/**/*.scss',
+//
+//         // compile a single data source
+//         // data: '$color: red; body { color: $color; }',
+//
+//         // compile multiple data sources
+//         data: [
+//             '$color: red; body { color: $color; }',
+//             '$padding: 10px; body { padding: $padding; }',
+//         ],
+//
+//         // output to a directory
+//         // output: 'dest',
+//
+//         // output to a single file
+//         output: 'dest/compiled.css',
+//     })
+//     .then(compiled => console.log('Done!', compiled))
+//     .catch(err => console.log('Error:', err));
 
 module.exports = nodeSassExtra;
