@@ -8,6 +8,11 @@ const fs = require('fs-extra');
 const sourceDir = path.resolve(__dirname, 'test-files');
 const outputDir = path.resolve(__dirname, 'test-compiled');
 
+const dataSources = [
+    '$color: red; body { color: $color; }',
+    '$padding: 10px; body { padding: $padding; }',
+];
+
 const testConfig = {
     sourceDir,
     outputDir,
@@ -25,7 +30,16 @@ const testConfig = {
         file: path.join(sourceDir, '**/*.scss'),
     },
     multiGlobSource: {
-        file: [path.join('**/*.scss'), path.join('**/*.sass')],
+        file: [
+            path.join(sourceDir, '**/*.scss'),
+            path.join(sourceDir, '**/*.sass'),
+        ],
+    },
+    dataSource: {
+        data: dataSources[0],
+    },
+    multiDataSource: {
+        data: dataSources,
     },
     singleOutput: {
         output: path.join(outputDir, 'test.css'),
@@ -62,6 +76,19 @@ describe('index.js', () => {
                 resolve(result);
             });
         });
+    }
+
+    function areAllCompiled(results) {
+        results = [].concat(results);
+
+        let allHaveCSS = true;
+        results.forEach(({ css }) => {
+            if (!css) {
+                allHaveCSS = false;
+            }
+        });
+
+        return allHaveCSS;
     }
 
     let originalConsole;
@@ -147,20 +174,33 @@ describe('index.js', () => {
         test('accepts multiple file sources', async () => {
             const results = await render(testConfig.multiSource);
             expect(results.length).toBe(3);
-
-            let allHaveCSS = true;
-            results.forEach(({ css }) => {
-                if (!css) {
-                    allHaveCSS = false;
-                }
-            });
-
-            expect(allHaveCSS).toBe(true);
+            expect(areAllCompiled(results)).toBe(true);
         });
 
-        test('accepts a single glob source', () => {});
+        test('accepts a single glob source', async () => {
+            const results = await render(testConfig.globSource);
+            expect(results.length).toBe(3);
+            expect(areAllCompiled(results)).toBe(true);
+        });
 
-        test('accepts multiple glob sources', () => {});
+        test('accepts multiple glob sources', async () => {
+            const results = await render(testConfig.multiGlobSource);
+            expect(results.length).toBe(4);
+            expect(areAllCompiled(results)).toBe(true);
+        });
+
+        test('accepts a single Scss/Sass string source', async () => {
+            const results = await render(testConfig.dataSource);
+            const css = results.css.toString();
+
+            expect(css.indexOf('color: red')).toBeGreaterThan(-1);
+        });
+
+        test('accepts multiple Scss/Sass string sources', async () => {
+            const results = await render(testConfig.multiDataSource);
+            expect(results.length).toBe(2);
+            expect(areAllCompiled(results)).toBe(true);
+        });
 
         test('writes a single CSS file to disk', async () => {
             const { singleSource, singleOutput } = testConfig;
