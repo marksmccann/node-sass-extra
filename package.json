@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "description": "A light wrapper around node-sass to provide support for globs, promises and more.",
   "main": "index.js",
+  "engines": {
+    "node": ">=7.6.0"
+  },
   "scripts": {
     "format": "prettier --write \"*.js\"",
     "lint": "eslint \"*.js\"",
