@@ -7,6 +7,7 @@ const fs = require('fs-extra');
 
 const sourceDir = path.resolve(__dirname, 'test-files');
 const outputDir = path.resolve(__dirname, 'test-compiled');
+const dynamicOutputDir = path.join(outputDir, 'dynamic');
 
 const dataSources = [
     '$color: red; body { color: $color; }',
@@ -17,13 +18,13 @@ const testConfig = {
     sourceDir,
     outputDir,
     singleSource: {
-        file: path.join(sourceDir, 'test.scss'),
+        file: path.join(sourceDir, 'test-scss-1.scss'),
     },
     multiSource: {
         file: [
-            path.join(sourceDir, 'test.scss'),
-            path.join(sourceDir, 'nested/test.scss'),
-            path.join(sourceDir, 'nested/deeper/test.scss'),
+            path.join(sourceDir, 'test-scss-1.scss'),
+            path.join(sourceDir, 'nested/test-scss-2.scss'),
+            path.join(sourceDir, 'nested/deeper/test-scss-3.scss'),
         ],
     },
     globSource: {
@@ -46,6 +47,17 @@ const testConfig = {
     },
     multiOutput: {
         output: outputDir,
+    },
+    dynamicOutput: {
+        output: sourceFile => sourceFile.replace(outputDir, dynamicOutputDir),
+    },
+    concatDynamicOutput: {
+        output: sourceFile => {
+            const filename = /\.scss$/.test(sourceFile)
+                ? 'from-scss.css'
+                : 'from-sass.css';
+            return path.join(outputDir, filename);
+        },
     },
 };
 
@@ -228,6 +240,31 @@ describe('index.js', () => {
             expect(bodyCount.length).toEqual(3);
         });
 
+        test('allows dynamic output via a function', async () => {
+            const { multiSource, dynamicOutput } = testConfig;
+            await render({ ...multiSource, ...dynamicOutput });
+
+            const renderedFiles = await getOutputCSSFiles();
+
+            let areAllDynamic = true;
+            renderedFiles.forEach(renderedFile => {
+                if (/dynamic/.test(renderedFile) === false) {
+                    areAllDynamic = false;
+                }
+            });
+
+            expect(areAllDynamic).toBe(true);
+        });
+
+        test('groups dynamic output by output path for concatenation', async () => {
+            const { multiGlobSource, concatDynamicOutput } = testConfig;
+            await render({ ...multiGlobSource, ...concatDynamicOutput });
+
+            const renderedFiles = await getOutputCSSFiles();
+
+            expect(renderedFiles.length).toBe(2);
+        });
+
         test('throws an error if required props are not provided', async () => {
             try {
                 await render();
@@ -245,6 +282,19 @@ describe('index.js', () => {
                 });
             } catch (err) {
                 expect(err.message).toContain('not found');
+            }
+        });
+
+        test('throws an error if dynamic `output` does not return a file path', async () => {
+            const { multiSource } = testConfig;
+
+            try {
+                await render({
+                    ...multiSource,
+                    output: () => 'dir',
+                });
+            } catch (err) {
+                expect(err.message).toContain('valid file path');
             }
         });
     });
