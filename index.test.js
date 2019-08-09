@@ -51,13 +51,24 @@ const testConfig = {
     dynamicOutput: {
         output: sourceFile => sourceFile.replace(outputDir, dynamicOutputDir),
     },
-    concatDynamicOutput: {
-        output: sourceFile => {
-            const filename = /\.scss$/.test(sourceFile)
-                ? 'from-scss.css'
-                : 'from-sass.css';
-            return path.join(outputDir, filename);
-        },
+    singleOutFile: {
+        outFile: path.join(outputDir, 'test.css'),
+    },
+    multiOutFile: {
+        outFile: outputDir,
+    },
+    dynamicOutFile: {
+        outFile: sourceFile => sourceFile.replace(outputDir, dynamicOutputDir),
+    },
+    sourceMap: {
+        sourceMap: true,
+    },
+    singleSourceMap: {
+        sourceMap: path.join(outputDir, 'test.css.map'),
+    },
+    dynamicSourceMap: {
+        sourceMap: sourceFile =>
+            sourceFile.replace(outputDir, dynamicOutputDir),
     },
 };
 
@@ -180,7 +191,7 @@ describe('index.js', () => {
             const results = await render(testConfig.singleSource);
             const css = results.css.toString();
 
-            expect(css.indexOf('body')).toBeGreaterThan(-1);
+            expect(css.indexOf('test-scss-1_scss')).toBeGreaterThan(-1);
         });
 
         test('accepts multiple file sources', async () => {
@@ -230,14 +241,11 @@ describe('index.js', () => {
             expect(renderedFiles.length).toEqual(3);
         });
 
-        test('concatenates multiple sources into a single output', async () => {
-            const { multiSource, singleOutput } = testConfig;
-            await render({ ...multiSource, ...singleOutput });
+        test('writes a single Scss/Sass string to disk', async () => {
+            const { dataSource, singleOutput } = testConfig;
+            await render({ ...dataSource, ...singleOutput });
 
-            const fileContent = await fs.readFile(singleOutput.output, 'utf8');
-            const bodyCount = fileContent.match(/body/g);
-
-            expect(bodyCount.length).toEqual(3);
+            expect(fs.pathExistsSync(singleOutput.output)).toBe(true);
         });
 
         test('allows dynamic output via a function', async () => {
@@ -254,15 +262,6 @@ describe('index.js', () => {
             });
 
             expect(areAllDynamic).toBe(true);
-        });
-
-        test('groups dynamic output by output path for concatenation', async () => {
-            const { multiGlobSource, concatDynamicOutput } = testConfig;
-            await render({ ...multiGlobSource, ...concatDynamicOutput });
-
-            const renderedFiles = await getOutputCSSFiles();
-
-            expect(renderedFiles.length).toBe(2);
         });
 
         test('throws an error if required props are not provided', async () => {
@@ -285,6 +284,19 @@ describe('index.js', () => {
             }
         });
 
+        test('throws an error on a `data` when `outFile` is a directory', async () => {
+            const { dataSource } = testConfig;
+
+            try {
+                await render({
+                    data: dataSource,
+                    outFile: 'dir',
+                });
+            } catch (err) {
+                expect(err.message).toContain('valid file path');
+            }
+        });
+
         test('throws an error if dynamic `output` does not return a file path', async () => {
             const { multiSource } = testConfig;
 
@@ -292,6 +304,97 @@ describe('index.js', () => {
                 await render({
                     ...multiSource,
                     output: () => 'dir',
+                });
+            } catch (err) {
+                expect(err.message).toContain('valid file path');
+            }
+        });
+
+        test('generate source map', async () => {
+            const { singleSource, singleOutFile, sourceMap } = testConfig;
+
+            const results = await render({
+                ...singleSource,
+                ...singleOutFile,
+                ...sourceMap,
+            });
+
+            expect(results.map).toBeDefined();
+        });
+
+        test('generate single source map', async () => {
+            const { singleSource, singleOutFile, singleSourceMap } = testConfig;
+
+            const results = await render({
+                ...singleSource,
+                ...singleOutFile,
+                ...singleSourceMap,
+            });
+
+            expect(results.map).toBeDefined();
+        });
+
+        test('generate single source map from dynamic prop', async () => {
+            const { multiSource, singleOutFile, dynamicSourceMap } = testConfig;
+
+            const results = await render({
+                ...multiSource,
+                ...singleOutFile,
+                ...dynamicSourceMap,
+            });
+
+            expect(results.map).toBeDefined();
+        });
+
+        test('writes source map to disk', async () => {
+            const { singleSource, singleOutput, singleSourceMap } = testConfig;
+
+            await render({
+                ...singleSource,
+                ...singleOutput,
+                ...singleSourceMap,
+            });
+
+            expect(fs.pathExistsSync(singleSourceMap.sourceMap)).toBe(true);
+        });
+
+        test('throws an error if `sourceMap` is provided without `outFile` or `output`', async () => {
+            const { singleSource } = testConfig;
+
+            try {
+                await render({
+                    ...singleSource,
+                    sourceMap: true,
+                });
+            } catch (err) {
+                expect(err.message).toEqual(
+                    'Either "output" or "outFile" option is required with "sourceMap".'
+                );
+            }
+        });
+
+        test('throws an error `sourceMap` is not a valid file path', async () => {
+            const { singleSource, outputDir } = testConfig;
+
+            try {
+                await render({
+                    ...singleSource,
+                    outFile: outputDir,
+                    sourceMap: 'dir',
+                });
+            } catch (err) {
+                expect(err.message).toContain('valid file path');
+            }
+        });
+
+        test('throws an error if dynamic `sourceMap` does not return a file path', async () => {
+            const { multiSource, outputDir } = testConfig;
+
+            try {
+                await render({
+                    ...multiSource,
+                    outFile: outputDir,
+                    sourceMap: () => 'dir',
                 });
             } catch (err) {
                 expect(err.message).toContain('valid file path');
