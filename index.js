@@ -8,14 +8,14 @@ const glob = require('glob');
 const sass = require('node-sass');
 
 /**
- * Utility for determining whether a given path is a css/sass/scss file or not.
+ * Utility for determining whether a given path is a file.
  *
  * @param {String} filePath
  * @api private
  */
 
 function isFile(filePath) {
-    return /\.(s[ca]|c)ss$/.test(filePath);
+    return /\.\S+$/.test(filePath);
 }
 
 /**
@@ -102,145 +102,122 @@ async function writeFile(content, filePath) {
 }
 
 /**
- * Takes one or more sources and config options to determine the essential aspects of a
- * compilation task; Returns node-sass config object(s) for each source/task.
+ * Determines the output file path for a given source via the "outFile"
+ * config option; returns an absolute path.
  *
- * For example ...
- *
- * getCompilerTasks('src/file.scss', {
- *     outFile: 'dest'
- *     sourceMap: true
- * });
- *
- * would produce ...
- *
- * {
- *     file: '//path/to/src/file.scss',
- *     outFile: '//path/to/dest/file.css',
- *     sourceMap: '//path/to/dest/file.css.map'
- * }
- *
- * @param {String|Array} sources
- * @param {Object} config
+ * @param {String} source
+ * @param {String|Function} outFile
  * @api private
  */
 
-function getCompilerTasks(sources, config) {
-    const { outFile, sourceMap } = config;
-    let options = {};
-
-    if (Array.isArray(sources)) {
-        return sources.map(source => getCompilerTasks(source, config));
-    }
-
-    // single file source ...
-    if (isFile(sources)) {
-        options.file = path.resolve(__dirname, sources);
-
-        // determine output file ...
-        if (outFile) {
-            // single file output
-            if (isFile(outFile)) {
-                options.outFile = outFile;
-
-                // dynamic output; run the given iterator function on each source
-            } else if (typeof outFile === 'function') {
-                const output = outFile(sources);
-
-                if (!isFile(output)) {
-                    throw new Error(
-                        '"output" and "outFile" function must return a valid file path'
-                    );
-                }
-
-                options.outFile = output;
-
-                // output is a directory; join the output with the source's basename
-            } else {
-                options.outFile = path.join(outFile, path.basename(sources));
-            }
+function getOutFile(source, outFile) {
+    if (isFile(source)) {
+        // dynamic output; run the given iterator function on each source
+        if (typeof outFile === 'function') {
+            outFile = outFile(source);
         }
 
-        // single data source ...
-    } else {
-        // add data source to options
-        options.data = sources;
-
-        // determine output file ...
-        if (outFile) {
-            if (isFile(outFile)) {
-                options.outFile = outFile;
-            } else {
-                throw new Error(
-                    '"output" and "outFile" must be a valid file path when accompanying "data".'
-                );
-            }
+        // output is a directory; append the source's basename
+        if (!isFile(outFile)) {
+            outFile = path.join(outFile, path.basename(source));
         }
     }
 
-    // resolve the output file and ensure it has a '.css' extension.
-    if (options.outFile) {
-        options.outFile = path.resolve(
-            options.outFile.replace(/\.(s[ca]|c)ss$/, '.css')
+    // throw error if the determined output is not a valid file path
+    if (!isFile(outFile)) {
+        throw new Error(
+            `"${outFile}" is not a valid file path for "output" or "outFile".`
         );
     }
 
-    // determine source map ...
+    // resolve and ensure '.css' extension
+    return path.resolve(outFile.replace(/\.(s[ca]|c)ss$/, '.css'));
+}
+
+/**
+ * Determines the source map file path for a given source via the "sourceMap"
+ * config option and an output file path; returns an absolute path.
+ *
+ * @param {String} source
+ * @param {String|Function|Boolean} sourceMap
+ * @param {String} outFile
+ * @api private
+ */
+
+function getSourceMap(source, sourceMap, outFile) {
+    // dynamic source map; run the given iterator function on each source map file
+    if (typeof sourceMap === 'function') {
+        sourceMap = sourceMap(outFile, source);
+
+        // source map is just a boolean; use `outFile` for the path
+    } else if (sourceMap === true) {
+        sourceMap = outFile;
+    }
+
+    // sourceMap is a directory; use `outFile` for the file name
+    if (!isFile(sourceMap)) {
+        sourceMap = path.join(sourceMap, path.basename(outFile));
+    }
+
+    // resolve and ensure '.map' extension
+    return path.resolve(sourceMap.replace(/(\.map)?$/, '.map'));
+}
+
+/**
+ * Takes some sources and user-defined options to return a
+ * set of node-sass config objects ready for compilation.
+ *
+ * @param {Array|String} sources
+ * @param {Object} userOptions
+ * @api private
+ */
+
+function getTasks(sources, userOptions) {
+    if (Array.isArray(sources)) {
+        return sources.map(source => getTasks(source, userOptions));
+    }
+
+    let { output, outFile, sourceMap, ...options } = userOptions;
+    let task = {};
+
+    outFile = output || outFile;
+
+    if (isFile(sources)) {
+        task.file = sources;
+    } else {
+        task.data = sources;
+    }
+
+    if (outFile) {
+        task.outFile = getOutFile(sources, outFile);
+    }
+
     if (sourceMap) {
-        if (!options.outFile) {
+        if (!outFile) {
             throw new Error(
                 'Either "output" or "outFile" option is required with "sourceMap".'
             );
         }
 
-        // single file source map
-        if (typeof sourceMap === 'string') {
-            if (/\.css(\.map)?$/.test(sourceMap)) {
-                options.sourceMap = sourceMap;
-            } else {
-                throw new Error('"sourceMap" must be a valid file path');
-            }
-
-            // dynamic source map; run the given iterator function on each output file
-        } else if (typeof sourceMap === 'function') {
-            const map = sourceMap(options.outFile, options.file);
-
-            if (!/\.css(\.map)?$/.test(map)) {
-                throw new Error(
-                    '"sourceMap" function must return a valid file path'
-                );
-            }
-
-            options.sourceMap = map;
-
-            // `sourceMap` === true; use `outFile` for the path
-        } else {
-            options.sourceMap = options.outFile;
-        }
-
-        // resolve source map file and ensure it has a `.map` file extension
-        options.sourceMap = path.resolve(
-            options.sourceMap.replace(/(\.map)?$/, '.map')
-        );
+        task.sourceMap = getSourceMap(sources, sourceMap, task.outFile);
     }
 
-    return options;
+    return {
+        ...options,
+        ...task,
+    };
 }
 
 /**
  * Async rendering of source files; maps to nodeSass.render.
  *
- * @param {Object} options
+ * @param {Object} userOptions
  * @return {Object|Array}
  * @api public
  */
 
 async function render(userOptions = {}) {
-    // don't mutate the original `options` object
-    let { data, file, output, outFile, sourceMap, ...options } = userOptions;
-
-    // default outFile to match output
-    outFile = output || outFile;
+    let { data, file, output } = userOptions;
 
     if (!file && !data) {
         throw new Error('Either a "data" or "file" option is required.');
@@ -250,17 +227,10 @@ async function render(userOptions = {}) {
     const sources = file ? await getSourceFiles(file) : data;
 
     // retrieve the compiler tasks
-    let tasks = [].concat(getCompilerTasks(sources, { outFile, sourceMap }));
+    let tasks = [].concat(getTasks(sources, userOptions));
 
     // compile tasks
-    const compiled = await Promise.all(
-        tasks.map(task =>
-            compile({
-                ...options,
-                ...task,
-            })
-        )
-    );
+    const compiled = await Promise.all(tasks.map(task => compile(task)));
 
     // write files to disk?
     if (output) {
@@ -315,10 +285,10 @@ module.exports = nodeSassExtra;
 // nodeSassExtra
 //     .render({
 //         // compile multiple files
-//         file: [
-//             'test-files/test-scss-1.scss',
-//             'test-files/nested/test-scss-2.scss',
-//         ],
+//         // file: [
+//         //     'test-files/test-scss-1.scss',
+//         //     'test-files/nested/test-scss-2.scss',
+//         // ],
 
 //         // compile a single file
 //         // file: 'test-files/test-scss-1.scss',
@@ -339,7 +309,7 @@ module.exports = nodeSassExtra;
 //         // ],
 
 //         // output to a directory
-//         output: 'dest',
+//         // output: 'dest',
 //         // outFile: 'dest',
 
 //         // dynamic output
@@ -348,6 +318,14 @@ module.exports = nodeSassExtra;
 //         // },
 //         // outFile: sourcePath => {
 //         //     return sourcePath.replace('test-files', 'test-compiled');
+//         // },
+
+//         // dynamic output returns a directory
+//         // output: () => {
+//         //     return 'dest';
+//         // },
+//         // outFile: () => {
+//         //     return 'dest';
 //         // },
 
 //         // dynamic output w/concatenation
@@ -368,12 +346,20 @@ module.exports = nodeSassExtra;
 //         // sourceMap: true,
 
 //         // single source map
-//         // sourceMap: 'dest/compiled.css.map'
+//         // sourceMap: 'dest/compiled.css.map',
+
+//         // source map directory
+//         // sourceMap: 'dest',
 
 //         // dynamic source map
 //         // sourceMap: outPath => {
 //         //     return outPath.replace('dest', 'test-compiled')
-//         // }
+//         // },
+
+//         // dynamic source map directory
+//         sourceMap: () => {
+//             return 'test-compiled';
+//         },
 //     })
 //     .then(compiled => {
 //         console.log('Done!', compiled);
