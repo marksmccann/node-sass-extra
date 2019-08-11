@@ -51,6 +51,9 @@ const testConfig = {
     dynamicOutput: {
         output: sourceFile => sourceFile.replace(outputDir, dynamicOutputDir),
     },
+    dynamicOutputDir: {
+        output: () => dynamicOutputDir,
+    },
     singleOutFile: {
         outFile: path.join(outputDir, 'test.css'),
     },
@@ -59,6 +62,9 @@ const testConfig = {
     },
     dynamicOutFile: {
         outFile: sourceFile => sourceFile.replace(outputDir, dynamicOutputDir),
+    },
+    dynamicOutFileDir: {
+        outFile: () => dynamicOutputDir,
     },
     sourceMap: {
         sourceMap: true,
@@ -264,6 +270,22 @@ describe('index.js', () => {
             expect(areAllDynamic).toBe(true);
         });
 
+        test('allows dynamic output to directory via a function', async () => {
+            const { multiSource, dynamicOutputDir } = testConfig;
+            await render({ ...multiSource, ...dynamicOutputDir });
+
+            const renderedFiles = await getOutputCSSFiles();
+
+            let areAllDynamic = true;
+            renderedFiles.forEach(renderedFile => {
+                if (/dynamic/.test(renderedFile) === false) {
+                    areAllDynamic = false;
+                }
+            });
+
+            expect(areAllDynamic).toBe(true);
+        });
+
         test('throws an error if required props are not provided', async () => {
             try {
                 await render();
@@ -291,19 +313,6 @@ describe('index.js', () => {
                 await render({
                     data: dataSource,
                     outFile: 'dir',
-                });
-            } catch (err) {
-                expect(err.message).toContain('valid file path');
-            }
-        });
-
-        test('throws an error if dynamic `output` does not return a file path', async () => {
-            const { multiSource } = testConfig;
-
-            try {
-                await render({
-                    ...multiSource,
-                    output: () => 'dir',
                 });
             } catch (err) {
                 expect(err.message).toContain('valid file path');
@@ -381,20 +390,6 @@ describe('index.js', () => {
                     ...singleSource,
                     outFile: outputDir,
                     sourceMap: 'dir',
-                });
-            } catch (err) {
-                expect(err.message).toContain('valid file path');
-            }
-        });
-
-        test('throws an error if dynamic `sourceMap` does not return a file path', async () => {
-            const { multiSource, outputDir } = testConfig;
-
-            try {
-                await render({
-                    ...multiSource,
-                    outFile: outputDir,
-                    sourceMap: () => 'dir',
                 });
             } catch (err) {
                 expect(err.message).toContain('valid file path');
