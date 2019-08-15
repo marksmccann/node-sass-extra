@@ -7,6 +7,8 @@ const fs = require('fs-extra');
 const glob = require('glob');
 const sass = require('node-sass');
 
+let SYNC = false;
+
 /**
  * Utility for determining whether a given path is a file.
  *
@@ -41,27 +43,37 @@ function flattenArray(arr) {
  * @api private
  */
 
-async function getSourceFiles(sources) {
+function getSourceFiles(sources) {
     const sourcePaths = [].concat(sources);
-    const sourceFiles = await Promise.all(
-        sourcePaths.map(
-            sourcePath =>
-                new Promise((resolve, reject) => {
-                    glob(sourcePath, (err, sourceFiles) => {
-                        /* istanbul ignore next */
-                        if (err) {
-                            reject(err);
-                        }
 
-                        resolve(sourceFiles);
-                    });
-                })
-        )
+    if (SYNC) {
+        const sourceFiles = sourcePaths.map(sourcePath =>
+            glob.sync(sourcePath)
+        );
+
+        // flatten the list of source files, as it will be an array of arrays from the above ...
+        // since we support both file paths and globs, any single `file` entry could be either 1 or
+        // N files
+        return flattenArray(sourceFiles);
+    }
+
+    const sourceFileTasks = sourcePaths.map(
+        sourcePath =>
+            new Promise((resolve, reject) => {
+                glob(sourcePath, (err, sourceFiles) => {
+                    /* istanbul ignore next */
+                    if (err) {
+                        reject(err);
+                    }
+
+                    resolve(sourceFiles);
+                });
+            })
     );
 
-    // flatten the list of source files, as it will be an array of arrays from the above ... since
-    // we support both file paths and globs, any single `file` entry could be either 1 or N files
-    return flattenArray(sourceFiles);
+    return Promise.all(sourceFileTasks)
+        .then(sourceFiles => flattenArray(sourceFiles))
+        .catch(Promise.reject);
 }
 
 /**
@@ -71,7 +83,11 @@ async function getSourceFiles(sources) {
  * @api private
  */
 
-async function compile(options) {
+function compile(options) {
+    if (SYNC) {
+        return sass.renderSync(options);
+    }
+
     return new Promise((resolve, reject) => {
         sass.render(options, (err, result) => {
             /* istanbul ignore next */
@@ -87,18 +103,23 @@ async function compile(options) {
 /**
  * Writes content to disk at the given destination; returns a promise.
  *
- * @param {Object} options
+ * @param {String} content File contents to write
+ * @param {String} filePath File to create and write contents to
  * @api private
  */
 
-async function writeFile(content, filePath) {
-    try {
-        await fs.ensureDir(path.dirname(filePath));
-        return fs.writeFile(filePath, content);
-    } catch (err) {
-        /* istanbul ignore next */
-        Promise.reject(err);
+function writeFile(content, filePath) {
+    const dirName = path.dirname(filePath);
+
+    if (SYNC) {
+        fs.ensureDirSync(dirName);
+        return fs.writeFileSync(filePath, content);
     }
+
+    return fs
+        .ensureDir(dirName)
+        .then(() => fs.writeFile(filePath, content))
+        .catch(Promise.reject);
 }
 
 /**
@@ -209,6 +230,26 @@ function getTasks(sources, userOptions) {
 }
 
 /**
+ * Ensures the required options are included for compilation.
+ *
+ * @param {Object} options
+ * @return {Object}
+ * @api private
+ */
+
+function validateOptions(options = {}) {
+    const { file, data } = options;
+
+    if (!file && !data) {
+        throw new Error('Either a "data" or "file" option is required.');
+    }
+
+    // create a new object from given options, ensuring we don't mutate the config beyond what's
+    // needed by the module
+    return { ...options };
+}
+
+/**
  * Async rendering of source files; maps to nodeSass.render.
  *
  * @param {Object} userOptions
@@ -216,18 +257,14 @@ function getTasks(sources, userOptions) {
  * @api public
  */
 
-async function render(userOptions = {}) {
-    let { data, file, output } = userOptions;
-
-    if (!file && !data) {
-        throw new Error('Either a "data" or "file" option is required.');
-    }
+async function render(userOptions) {
+    const { data, file, output } = validateOptions(userOptions);
 
     // retrieve the list of sources
     const sources = file ? await getSourceFiles(file) : data;
 
     // retrieve the compiler tasks
-    let tasks = [].concat(getTasks(sources, userOptions));
+    const tasks = [].concat(getTasks(sources, userOptions));
 
     // compile tasks
     const compiled = await Promise.all(tasks.map(task => compile(task)));
@@ -237,7 +274,7 @@ async function render(userOptions = {}) {
         await Promise.all(
             compiled.map(({ css, map }, i) => {
                 const task = tasks[i];
-                let toWrite = [writeFile(css, task.outFile)];
+                const toWrite = [writeFile(css, task.outFile)];
 
                 if (map) {
                     toWrite.push(writeFile(map, task.sourceMap));
@@ -255,14 +292,33 @@ async function render(userOptions = {}) {
 /**
  * Synchronous rendering of source files; maps to nodeSass.renderSync
  *
- * @param {Object} options
+ * @param {Object} userOptions
  * @return {Object|Array}
  * @api public
  */
 
-function renderSync() {
-    /* istanbul ignore next */
-    return false;
+function renderSync(userOptions) {
+    // trip our global flag for synchronous handling in all downstream methods
+    SYNC = true;
+
+    const { data, file, output } = validateOptions(userOptions);
+    const sources = file ? getSourceFiles(file) : data;
+    const tasks = [].concat(getTasks(sources, userOptions));
+    const compiled = tasks.map(task => compile(task));
+
+    if (output) {
+        compiled.map(({ css, map }, i) => {
+            const task = tasks[i];
+            writeFile(css, task.outFile);
+
+            if (map) {
+                writeFile(map, task.sourceMap);
+            }
+        });
+    }
+
+    // return the native nodeSass object(s) from compilation
+    return compiled.length === 1 ? compiled[0] : compiled;
 }
 
 /**

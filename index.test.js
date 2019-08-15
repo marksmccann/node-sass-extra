@@ -1,6 +1,6 @@
 const sass = require('./index');
 const nodeSassBaseModule = require('node-sass');
-const { render } = sass;
+const { render, renderSync } = sass;
 const path = require('path');
 const glob = require('glob');
 const fs = require('fs-extra');
@@ -95,7 +95,11 @@ describe('index.js', () => {
         });
     }
 
-    function getNodeSassResult(sourceFile) {
+    function getNodeSassResult(sourceFile, sync = false) {
+        if (sync) {
+            return nodeSassBaseModule.renderSync(sourceFile);
+        }
+
         return new Promise((resolve, reject) => {
             nodeSassBaseModule.render(sourceFile, (err, result) => {
                 if (err) {
@@ -395,5 +399,241 @@ describe('index.js', () => {
                 expect(err.message).toContain('valid file path');
             }
         });
+    });
+
+    //
+    // test `renderSync` method
+    //
+    describe('sass.renderSync()', () => {
+        test('syncrhonously returns a `node-sass` object for a single source', () => {
+            const { singleSource } = testConfig;
+            const nodeSassResult = getNodeSassResult(singleSource, true);
+            const result = renderSync(singleSource);
+
+            expect(Object.keys(result)).toEqual(Object.keys(nodeSassResult));
+        });
+
+        test('synchronously returns an array of `node-sass` results for multiple sources', () => {
+            const { multiSource } = testConfig;
+            const results = renderSync(multiSource);
+
+            results.map(result => {
+                const nodeSassResult = getNodeSassResult(
+                    {
+                        file: result.stats.entry,
+                    },
+                    true
+                );
+
+                expect(Object.keys(result)).toEqual(
+                    Object.keys(nodeSassResult)
+                );
+
+                return result;
+            });
+        });
+
+        test('accepts a single file source', () => {
+            const results = renderSync(testConfig.singleSource);
+            const css = results.css.toString();
+
+            expect(css.indexOf('test-scss-1_scss')).toBeGreaterThan(-1);
+        });
+
+        test('accepts multiple file sources', () => {
+            const results = renderSync(testConfig.multiSource);
+            expect(results.length).toBe(3);
+            expect(areAllCompiled(results)).toBe(true);
+        });
+
+        test('accepts a single glob source', () => {
+            const results = renderSync(testConfig.globSource);
+            expect(results.length).toBe(3);
+            expect(areAllCompiled(results)).toBe(true);
+        });
+
+        test('accepts multiple glob sources', () => {
+            const results = renderSync(testConfig.multiGlobSource);
+            expect(results.length).toBe(4);
+            expect(areAllCompiled(results)).toBe(true);
+        });
+
+        test('accepts a single Scss/Sass string source', () => {
+            const results = renderSync(testConfig.dataSource);
+            const css = results.css.toString();
+
+            expect(css.indexOf('color: red')).toBeGreaterThan(-1);
+        });
+
+        test('accepts multiple Scss/Sass string sources', () => {
+            const results = renderSync(testConfig.multiDataSource);
+            expect(results.length).toBe(2);
+            expect(areAllCompiled(results)).toBe(true);
+        });
+
+        test('synchronously writes a single CSS file to disk', () => {
+            const { singleSource, singleOutput } = testConfig;
+            renderSync({ ...singleSource, ...singleOutput });
+
+            expect(fs.pathExistsSync(singleOutput.output)).toBe(true);
+        });
+
+        test('synchronously writes multiple CSS files to disk', async () => {
+            const { multiSource, multiOutput } = testConfig;
+            renderSync({ ...multiSource, ...multiOutput });
+
+            const renderedFiles = await getOutputCSSFiles();
+
+            expect(renderedFiles.length).toEqual(3);
+        });
+
+        test('synchronously writes a single Scss/Sass string to disk', () => {
+            const { dataSource, singleOutput } = testConfig;
+            renderSync({ ...dataSource, ...singleOutput });
+
+            expect(fs.pathExistsSync(singleOutput.output)).toBe(true);
+        });
+
+        test('allows dynamic output via a function', async () => {
+            const { multiSource, dynamicOutput } = testConfig;
+            renderSync({ ...multiSource, ...dynamicOutput });
+
+            const renderedFiles = await getOutputCSSFiles();
+
+            let areAllDynamic = true;
+            renderedFiles.forEach(renderedFile => {
+                if (/dynamic/.test(renderedFile) === false) {
+                    areAllDynamic = false;
+                }
+            });
+
+            expect(areAllDynamic).toBe(true);
+        });
+
+        test('allows dynamic output to directory via a function', async () => {
+            const { multiSource, dynamicOutputDir } = testConfig;
+            renderSync({ ...multiSource, ...dynamicOutputDir });
+
+            const renderedFiles = await getOutputCSSFiles();
+
+            let areAllDynamic = true;
+            renderedFiles.forEach(renderedFile => {
+                if (/dynamic/.test(renderedFile) === false) {
+                    areAllDynamic = false;
+                }
+            });
+
+            expect(areAllDynamic).toBe(true);
+        });
+
+        test('throws an error if required props are not provided', () => {
+            try {
+                renderSync();
+            } catch (err) {
+                expect(err.message).toEqual(
+                    'Either a "data" or "file" option is required.'
+                );
+            }
+        });
+
+        test('throws an error if a source file is not found', () => {
+            try {
+                renderSync({
+                    file: 'nonexistant.scss',
+                });
+            } catch (err) {
+                expect(err.message).toContain('not found');
+            }
+        });
+
+        test('throws an error on a `data` when `outFile` is a directory', () => {
+            const { dataSource } = testConfig;
+
+            try {
+                renderSync({
+                    data: dataSource,
+                    outFile: 'dir',
+                });
+            } catch (err) {
+                expect(err.message).toContain('valid file path');
+            }
+        });
+
+        test('synchronously generates source map', () => {
+            const { singleSource, singleOutFile, sourceMap } = testConfig;
+
+            const results = renderSync({
+                ...singleSource,
+                ...singleOutFile,
+                ...sourceMap,
+            });
+
+            expect(results.map).toBeDefined();
+        });
+
+        test('synchronously generates single source map', () => {
+            const { singleSource, singleOutFile, singleSourceMap } = testConfig;
+
+            const results = renderSync({
+                ...singleSource,
+                ...singleOutFile,
+                ...singleSourceMap,
+            });
+
+            expect(results.map).toBeDefined();
+        });
+
+        test('synchronously generates single source map from dynamic prop', () => {
+            const { multiSource, singleOutFile, dynamicSourceMap } = testConfig;
+
+            const results = renderSync({
+                ...multiSource,
+                ...singleOutFile,
+                ...dynamicSourceMap,
+            });
+
+            expect(results.map).toBeDefined();
+        });
+
+        test('synchronously writes source map to disk', () => {
+            const { singleSource, singleOutput, singleSourceMap } = testConfig;
+
+            renderSync({
+                ...singleSource,
+                ...singleOutput,
+                ...singleSourceMap,
+            });
+
+            expect(fs.pathExistsSync(singleSourceMap.sourceMap)).toBe(true);
+        });
+
+        // test('throws an error if `sourceMap` is provided without `outFile` or `output`', async () => {
+        //     const { singleSource } = testConfig;
+        //
+        //     try {
+        //         await render({
+        //             ...singleSource,
+        //             sourceMap: true,
+        //         });
+        //     } catch (err) {
+        //         expect(err.message).toEqual(
+        //             'Either "output" or "outFile" option is required with "sourceMap".'
+        //         );
+        //     }
+        // });
+
+        // test('throws an error `sourceMap` is not a valid file path', async () => {
+        //     const { singleSource, outputDir } = testConfig;
+        //
+        //     try {
+        //         await render({
+        //             ...singleSource,
+        //             outFile: outputDir,
+        //             sourceMap: 'dir',
+        //         });
+        //     } catch (err) {
+        //         expect(err.message).toContain('valid file path');
+        //     }
+        // });
     });
 });
