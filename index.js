@@ -33,7 +33,47 @@ function flattenArray(arr) {
 }
 
 /**
- * Takes a single source or array of sources and returns a list of files to
+ * Utility for coercing a given item into an array
+ *
+ * @param {*}
+ * @return {Array}
+ * @api private
+ */
+function arrayify(item) {
+    return [].concat(item);
+}
+
+/**
+ * Utlitity for marshalling array data; if an array contains only a single item, the item is
+ * returned. Otherwise, the entire array is returned.
+ *
+ * @param {Array} arrayData
+ * @return {*}
+ * @api private
+ */
+
+function marshalArray(arrayData) {
+    return arrayData.length === 1 ? arrayData[0] : arrayData;
+}
+
+/**
+ * Synchronously takes a single source or array of sources and returns a list of files to
+ * be compiled; sources can be file paths or globs.
+ *
+ * @param {String|Array} sources
+ * @return {Array}
+ * @api private
+ */
+
+function getSourceFilesSync(sources) {
+    const sourceFiles = arrayify(sources).map(sourcePath =>
+        glob.sync(sourcePath)
+    );
+    return flattenArray(sourceFiles);
+}
+
+/**
+ * Asynchronously takes a single source or array of sources and returns a list of files to
  * be compiled; sources can be file paths or globs.
  *
  * @param {String|Array} sources
@@ -65,6 +105,17 @@ async function getSourceFiles(sources) {
 }
 
 /**
+ * Synchronously compiles via node-sass
+ *
+ * @param {Object} options
+ * @api private
+ */
+
+function compileSync(options) {
+    return sass.renderSync(options);
+}
+
+/**
  * Compiles via node-sass; returns a promise.
  *
  * @param {Object} options
@@ -85,9 +136,24 @@ async function compile(options) {
 }
 
 /**
- * Writes content to disk at the given destination; returns a promise.
+ * Synchronously writes content to disk at the given destination
  *
- * @param {Object} options
+ * @param {String} content
+ * @param {String} filePath
+ * @api private
+ */
+
+function writeFileSync(content, filePath) {
+    fs.ensureDirSync(path.dirname(filePath));
+    fs.writeFileSync(filePath, content);
+}
+
+/**
+ * Asynchronously writes content to disk at the given destination; returns a promise.
+ *
+ * @param {String} content
+ * @param {String} filePath
+ * @return {Promise}
  * @api private
  */
 
@@ -168,17 +234,17 @@ function getSourceMap(source, sourceMap, outFile) {
  * set of node-sass config objects ready for compilation.
  *
  * @param {Array|String} sources
- * @param {Object} userOptions
+ * @param {Object} options
  * @api private
  */
 
-function getTasks(sources, userOptions) {
+function getTasks(sources, options) {
     if (Array.isArray(sources)) {
-        return sources.map(source => getTasks(source, userOptions));
+        return sources.map(source => getTasks(source, options));
     }
 
-    let { output, outFile, sourceMap, ...options } = userOptions;
-    let task = {};
+    let { output, outFile, sourceMap, ...nodeSassOptions } = options;
+    const task = {};
 
     outFile = output || outFile;
 
@@ -193,41 +259,53 @@ function getTasks(sources, userOptions) {
     }
 
     if (sourceMap) {
-        if (!outFile) {
-            throw new Error(
-                'Either "output" or "outFile" option is required with "sourceMap".'
-            );
-        }
-
         task.sourceMap = getSourceMap(sources, sourceMap, task.outFile);
     }
 
     return {
-        ...options,
+        ...nodeSassOptions,
         ...task,
     };
 }
 
 /**
- * Async rendering of source files; maps to nodeSass.render.
- *
- * @param {Object} userOptions
- * @return {Object|Array}
- * @api public
+ * @param {Object} options
+ * @return {Object}
+ * @api private
  */
 
-async function render(userOptions = {}) {
-    let { data, file, output } = userOptions;
+function validateOptions(options = {}) {
+    const { data, file, output, outFile, sourceMap } = options;
 
     if (!file && !data) {
         throw new Error('Either a "data" or "file" option is required.');
     }
 
+    if (sourceMap && (!output && !outFile)) {
+        throw new Error(
+            'Either "output" or "outFile" option is required with "sourceMap".'
+        );
+    }
+
+    return options;
+}
+
+/**
+ * Async rendering of source files; maps to nodeSass.render.
+ *
+ * @param {Object} options
+ * @return {Object|Array}
+ * @api public
+ */
+
+async function render(options) {
+    const { data, file, output } = validateOptions(options);
+
     // retrieve the list of sources
     const sources = file ? await getSourceFiles(file) : data;
 
     // retrieve the compiler tasks
-    let tasks = [].concat(getTasks(sources, userOptions));
+    const tasks = arrayify(getTasks(sources, options));
 
     // compile tasks
     const compiled = await Promise.all(tasks.map(task => compile(task)));
@@ -237,7 +315,7 @@ async function render(userOptions = {}) {
         await Promise.all(
             compiled.map(({ css, map }, i) => {
                 const task = tasks[i];
-                let toWrite = [writeFile(css, task.outFile)];
+                const toWrite = [writeFile(css, task.outFile)];
 
                 if (map) {
                     toWrite.push(writeFile(map, task.sourceMap));
@@ -249,7 +327,7 @@ async function render(userOptions = {}) {
     }
 
     // return the native nodeSass object(s) from compilation
-    return compiled.length === 1 ? compiled[0] : compiled;
+    return marshalArray(compiled);
 }
 
 /**
@@ -260,9 +338,25 @@ async function render(userOptions = {}) {
  * @api public
  */
 
-function renderSync() {
-    /* istanbul ignore next */
-    return false;
+function renderSync(options) {
+    const { data, file, output } = validateOptions(options);
+    const sources = file ? getSourceFilesSync(file) : data;
+    const tasks = arrayify(getTasks(sources, options));
+    const compiled = tasks.map(task => compileSync(task));
+
+    // write files to disk?
+    if (output) {
+        compiled.forEach(({ css, map }, i) => {
+            const task = tasks[i];
+            writeFileSync(css, task.outFile);
+
+            if (map) {
+                writeFileSync(map, task.sourceMap);
+            }
+        });
+    }
+
+    return marshalArray(compiled);
 }
 
 /**
@@ -277,93 +371,3 @@ const nodeSassExtra = {
 };
 
 module.exports = nodeSassExtra;
-
-// --------------------------------------------------------------
-// dev - DELETE ME
-// --------------------------------------------------------------
-
-// nodeSassExtra
-//     .render({
-//         // compile multiple files
-//         // file: [
-//         //     'test-files/test-scss-1.scss',
-//         //     'test-files/nested/test-scss-2.scss',
-//         // ],
-
-//         // compile a single file
-//         // file: 'test-files/test-scss-1.scss',
-
-//         // compile multiple globs
-//         // file: ['test-files/**/*.scss', 'test-files/**/*.sass'],
-
-//         // compile a single glob
-//         // file: 'test-files/**/*.scss',
-
-//         // compile a single data source
-//         // data: '$color: red; .data { color: $color; }',
-
-//         // compile multiple data sources
-//         // data: [
-//         //     '$color: red; .data { color: $color; }',
-//         //     '$padding: 10px; .data-2 { padding: $padding; }',
-//         // ],
-
-//         // output to a directory
-//         // output: 'dest',
-//         // outFile: 'dest',
-
-//         // dynamic output
-//         // output: sourcePath => {
-//         //     return sourcePath.replace('test-files', 'dest');
-//         // },
-//         // outFile: sourcePath => {
-//         //     return sourcePath.replace('test-files', 'test-compiled');
-//         // },
-
-//         // dynamic output returns a directory
-//         // output: () => {
-//         //     return 'dest';
-//         // },
-//         // outFile: () => {
-//         //     return 'dest';
-//         // },
-
-//         // dynamic output w/concatenation
-//         // output: sourcePath => {
-//         //     const replaced = /\.scss$/.test(sourcePath) ? 'from-scss.css' : 'from-sass.css';
-//         //     return 'test-dest/' + replaced;
-//         // },
-//         // outFile: sourcePath => {
-//         //     const replaced = /\.scss$/.test(sourcePath) ? 'from-scss.css' : 'from-sass.css';
-//         //     return 'test-dest/' + replaced;
-//         // },
-
-//         // output to a single file
-//         // output: 'dest/compiled.css',
-//         // outFile: 'dest/compiled.css',
-
-//         // source map
-//         // sourceMap: true,
-
-//         // single source map
-//         // sourceMap: 'dest/compiled.css.map',
-
-//         // source map directory
-//         // sourceMap: 'dest',
-
-//         // dynamic source map
-//         // sourceMap: outPath => {
-//         //     return outPath.replace('dest', 'test-compiled')
-//         // },
-
-//         // dynamic source map directory
-//         sourceMap: () => {
-//             return 'test-compiled';
-//         },
-//     })
-//     .then(compiled => {
-//         console.log('Done!', compiled);
-//     })
-//     .catch(err => {
-//         console.log('Error:', err);
-//     });
