@@ -1,5 +1,7 @@
-/*!
- * node-sass-extra: src/index.js
+/**
+ * The Node API for `node-sass-extra`.
+ *
+ * @module node-sass-extra
  */
 
 const path = require('path');
@@ -8,12 +10,109 @@ const glob = require('glob');
 const sass = require('node-sass');
 
 /**
- * Utility for determining whether a given path is a file.
+ * A `node-sass-extra` config object.
  *
- * @param {String} filePath
- * @api private
+ * @typedef {object} options
+ * @property {string|string[]} data - String(s) to be compiled.
+ * @property {string|string[]} file - File(s) to be compiled; can be a file path or a glob pattern.
+ * @property {string|module:node-sass-extra~setOutFile} output - The output destination; can be a file path, a directory, or a callback that returns a file path or directory. Must be/return a file path when paried with `data`. If provided, files will be written to disk.
+ * @property {string|module:node-sass-extra~setOutFile} outFile - The output destination; can be a file path, a directory, or a callback that returns a file path or directory. Must be/return a file path when paried with `data`. `output` will override this value if provided.
+ * @property {string|module:node-sass-extra~setSourceMap} sourceMap - The source map destination; can be a boolean, a file path, a directory, or a callback that returns a file path or directory. If a boolean or directory, the file will be named after the output file.
+ * @property {*} ... - {@link external:nodeSassOptions}
+ * @augments external:nodeSassOptions
+ *
+ * @example
+ * // compiles and writes file
+ * {
+ *     file: 'src/file.scss',
+ *     output: 'css/file.css'
+ * }
+ *
+ * @example
+ * // compiles and creates source maps, but does NOT write them
+ * {
+ *     file: 'src/*.scss',
+ *     outFile: 'css',
+ *     sourceMap: true
+ * }
+ *
+ * @example
+ * // compiles and creates source maps; writes css to `css/` and source maps to `maps/`
+ * {
+ *     file: ['src/file1.scss', 'src/file2.scss'],
+ *     output: 'css',
+ *     sourceMap: 'maps'
+ * }
+ *
+ * @example
+ * // compiles and creates source map; writes css and source map to `css/file.css.map`
+ * {
+ *     data: '$color: red; .foo { background: $color; } ...',
+ *     output: 'css/file.css',
+ *     sourceMap: true
+ * }
  */
 
+/**
+ * Callback for dynamically defining the output path via the source
+ * file; must return a valid file path.
+ *
+ * @callback setOutFile
+ * @param {string} srcFile - The source file path.
+ * @returns {string} A file path.
+ *
+ * @example
+ * render({
+ *     file: 'src/path/to/file.scss',
+ *     output: srcFile => {
+ *         // returns 'css/path/to/file.css';
+ *         return srcFile.replace(/src\//, 'css/');
+ *     }
+ * });
+ */
+
+/**
+ * Callback for dynamically defining the source map's output path via the
+ * output and/or source files; must return a valid file path.
+ *
+ * @callback setSourceMap
+ * @param {string} outFile - The output file path.
+ * @param {string} srcFile - The source file path.
+ * @returns {string} A file path.
+ *
+ * @example
+ * render({
+ *     file: 'src/path/to/file.scss',
+ *     outFile: 'css',
+ *     sourceMap: (outFile, srcFile) => {
+ *         // returns 'map/file.css.map';
+ *         return outFile.replace(/css\//, 'map/');
+ *     }
+ * });
+ */
+
+/**
+ * @external nodeSassOptions
+ * @see https://github.com/sass/node-sass#options
+ */
+
+/**
+ * @external nodeSassResult
+ * @see https://github.com/sass/node-sass#result-object
+ */
+
+/**
+ * @external nodeSassError
+ * @see https://github.com/sass/node-sass#error-object
+ */
+
+/**
+ * Utility for determining whether a given path is a file.
+ *
+ * @param {string} filePath
+ * @returns {boolean}
+ * @private
+ */
 function isFile(filePath) {
     return /\.\S+$/.test(filePath);
 }
@@ -23,9 +122,9 @@ function isFile(filePath) {
  * a single level as that's all that's required.
  *
  * @param {Array} arr
- * @api private
+ * @returns {Array}
+ * @private
  */
-
 function flattenArray(arr) {
     return arr.reduce((flattened, items) => {
         return flattened.concat(items);
@@ -33,11 +132,11 @@ function flattenArray(arr) {
 }
 
 /**
- * Utility for coercing a given item into an array
+ * Utility for coercing a given item into an array.
  *
- * @param {*}
- * @return {Array}
- * @api private
+ * @param {*} item
+ * @returns {Array}
+ * @private
  */
 function arrayify(item) {
     return [].concat(item);
@@ -48,23 +147,21 @@ function arrayify(item) {
  * returned. Otherwise, the entire array is returned.
  *
  * @param {Array} arrayData
- * @return {*}
- * @api private
+ * @returns {*}
+ * @private
  */
-
 function marshalArray(arrayData) {
     return arrayData.length === 1 ? arrayData[0] : arrayData;
 }
 
 /**
- * Synchronously takes a single source or array of sources and returns a list of files to
+ * Synchronously takes source file(s) and returns a list of files to
  * be compiled; sources can be file paths or globs.
  *
- * @param {String|Array} sources
- * @return {Array}
- * @api private
+ * @param {string|string[]} sources
+ * @returns {string[]}
+ * @private
  */
-
 function getSourceFilesSync(sources) {
     const sourceFiles = arrayify(sources).map(sourcePath =>
         glob.sync(sourcePath)
@@ -73,14 +170,14 @@ function getSourceFilesSync(sources) {
 }
 
 /**
- * Asynchronously takes a single source or array of sources and returns a list of files to
+ * Asynchronously takes source file(s) and returns a list of files to
  * be compiled; sources can be file paths or globs.
  *
- * @param {String|Array} sources
- * @return {Array}
- * @api private
+ * @param {string|string[]} sources
+ * @returns {string[]}
+ * @private
+ * @async
  */
-
 async function getSourceFiles(sources) {
     const sourcePaths = [].concat(sources);
     const sourceFiles = await Promise.all(
@@ -107,21 +204,24 @@ async function getSourceFiles(sources) {
 /**
  * Synchronously compiles via node-sass
  *
- * @param {Object} options
- * @api private
+ * @param {external:nodeSassOptions} options
+ * @returns {external:nodeSassResult}
+ * @throws {external:nodeSassError}
+ * @private
  */
-
 function compileSync(options) {
     return sass.renderSync(options);
 }
 
 /**
- * Compiles via node-sass; returns a promise.
+ * Compiles via node-sass; returns a promise. Resolves with {@link external:nodeSassResult|nodeSassResult(s)};
+ * rejects with {@link external:nodeSassError}.
  *
- * @param {Object} options
- * @api private
+ * @param {external:nodeSassOptions} options
+ * @returns {Promise}
+ * @private
+ * @async
  */
-
 async function compile(options) {
     return new Promise((resolve, reject) => {
         sass.render(options, (err, result) => {
@@ -136,13 +236,12 @@ async function compile(options) {
 }
 
 /**
- * Synchronously writes content to disk at the given destination
+ * Synchronously writes content to disk at the given destination.
  *
- * @param {String} content
- * @param {String} filePath
- * @api private
+ * @param {string} content
+ * @param {string} filePath
+ * @private
  */
-
 function writeFileSync(content, filePath) {
     fs.ensureDirSync(path.dirname(filePath));
     fs.writeFileSync(filePath, content);
@@ -151,12 +250,13 @@ function writeFileSync(content, filePath) {
 /**
  * Asynchronously writes content to disk at the given destination; returns a promise.
  *
- * @param {String} content
- * @param {String} filePath
- * @return {Promise}
- * @api private
+ * @param {string} content
+ * @param {string} filePath
+ * @returns {Promise}
+ * @throws {Error}
+ * @private
+ * @async
  */
-
 async function writeFile(content, filePath) {
     try {
         await fs.ensureDir(path.dirname(filePath));
@@ -171,11 +271,12 @@ async function writeFile(content, filePath) {
  * Determines the output file path for a given source via the "outFile"
  * config option; returns an absolute path.
  *
- * @param {String} source
- * @param {String|Function} outFile
- * @api private
+ * @param {string} source
+ * @param {string|module:node-sass-extra~setOutFile} outFile
+ * @returns {string}
+ * @throws {Error}
+ * @private
  */
-
 function getOutFile(source, outFile) {
     if (isFile(source)) {
         // dynamic output; run the given iterator function on each source
@@ -204,12 +305,12 @@ function getOutFile(source, outFile) {
  * Determines the source map file path for a given source via the "sourceMap"
  * config option and an output file path; returns an absolute path.
  *
- * @param {String} source
- * @param {String|Function|Boolean} sourceMap
- * @param {String} outFile
- * @api private
+ * @param {string} source
+ * @param {boolean|string|module:node-sass-extra~setSourceMap} sourceMap
+ * @param {string} outFile
+ * @returns {string}
+ * @private
  */
-
 function getSourceMap(source, sourceMap, outFile) {
     // dynamic source map; run the given iterator function on each source map file
     if (typeof sourceMap === 'function') {
@@ -230,14 +331,14 @@ function getSourceMap(source, sourceMap, outFile) {
 }
 
 /**
- * Takes some sources and user-defined options to return a
- * set of node-sass config objects ready for compilation.
+ * Takes some sources and user-defined options to return a set of node-sass config
+ * objects ready for compilation.
  *
- * @param {Array|String} sources
- * @param {Object} options
- * @api private
+ * @param {string|string[]} sources
+ * @param {module:node-sass-extra~options} options
+ * @returns {nodeSassOptions[]}
+ * @private
  */
-
 function getTasks(sources, options) {
     if (Array.isArray(sources)) {
         return sources.map(source => getTasks(source, options));
@@ -269,11 +370,13 @@ function getTasks(sources, options) {
 }
 
 /**
- * @param {Object} options
- * @return {Object}
- * @api private
+ * Validates the options passed into the compiler, ensuring required props are present.
+ *
+ * @param {module:node-sass-extra~options} options
+ * @returns {module:node-sass-extra~options}
+ * @throws {Error}
+ * @private
  */
-
 function validateOptions(options = {}) {
     const { data, file, output, outFile, sourceMap } = options;
 
@@ -291,13 +394,42 @@ function validateOptions(options = {}) {
 }
 
 /**
- * Async rendering of source files; maps to nodeSass.render.
+ * Asynchronous rendering; maps to nodeSass.render. Resolves with {@link external:nodeSassResult|nodeSassResult};
+ * rejects with {@link external:nodeSassError}. If more than one source is compiled an array of results is returned.
  *
- * @param {Object} options
- * @return {Object|Array}
- * @api public
+ * @param {module:node-sass-extra~options} options
+ * @returns {Promise}
+ * @public
+ * @async
+ *
+ * @example
+ * const sass = require('node-sass-extra');
+ *
+ * sass.render({
+ *     file: 'src/*.scss',
+ *     output: 'css'
+ *     [, ...options]
+ * })
+ *     .then(result => {
+ *         // ...
+ *     })
+ *     .catch(err => {
+ *         // ...
+ *     });
+ *
+ * @example
+ * const sass = require('node-sass-extra');
+ *
+ * try {
+ *     const result = await sass.render({
+ *         file: 'src/*.scss',
+ *         output: 'css'
+ *         [, ...options]
+ *     });
+ * } catch (err) {
+ *     // ...
+ * }
  */
-
 async function render(options) {
     const { data, file, output } = validateOptions(options);
 
@@ -331,13 +463,36 @@ async function render(options) {
 }
 
 /**
- * Synchronous rendering of source files; maps to nodeSass.renderSync
+ * Synchronous rendering; maps to nodeSass.renderSync. If more than one source is compiled
+ * an array of results is returned.
  *
- * @param {Object} options
- * @return {Object|Array}
- * @api public
+ * @param {module:node-sass-extra~options} options
+ * @returns {external:nodeSassResult|external:nodeSassResult[]}
+ * @throws {external:nodeSassError}
+ * @public
+ *
+ * @example
+ * const sass = require('node-sass-extra');
+ *
+ * const result = sass.renderSync({
+ *     file: 'src/*.scss',
+ *     output: 'css'
+ *     [, ...options]
+ * });
+ *
+ * @example
+ * const sass = require('node-sass-extra');
+ *
+ * try {
+ *     const result = sass.renderSync({
+ *         file: 'src/*.scss',
+ *         output: 'css'
+ *         [, ...options]
+ *     });
+ * } catch(err) {
+ *     // ...
+ * };
  */
-
 function renderSync(options) {
     const { data, file, output } = validateOptions(options);
     const sources = file ? getSourceFilesSync(file) : data;
@@ -359,15 +514,8 @@ function renderSync(options) {
     return marshalArray(compiled);
 }
 
-/**
- * Expose the API
- *
- * @api public
- */
-
-const nodeSassExtra = {
+// Expose the API
+module.exports = {
     render,
     renderSync,
 };
-
-module.exports = nodeSassExtra;
