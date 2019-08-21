@@ -1,6 +1,12 @@
 {
-    "extends": "eslint:recommended",
+    "extends": [
+      "eslint:recommended",
+      "plugin:jsdoc/recommended"
+    ],
     "rules": {
+      "jsdoc/require-returns-description": 0,
+      "jsdoc/require-param-description": 0,
+      "jsdoc/require-jsdoc": 0
     },
     "env": {
       "node": true,
@@ -9,5 +15,8 @@
     },
     "parserOptions": {
         "ecmaVersion": 2018
-    }
+    },
+    "plugins": [
+      "jsdoc"
+    ]
 }

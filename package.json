@@ -1,7 +1,7 @@
 {
   "name": "node-sass-extra",
   "version": "0.1.0",
-  "description": "A light wrapper around node-sass to provide support for globs, promises and more.",
+  "description": "A drop-in replacement for node-sass that adds support for globs, promises and more.",
   "main": "index.js",
   "engines": {
     "node": ">=7.6.0"
@@ -12,7 +12,8 @@
     "test": "jest --coverage",
     "test:watch": "jest --coverage --watch",
     "commit": "git cz",
-    "release": "standard-version"
+    "release": "standard-version",
+    "docs": "jsdoc2md index.js -t README.hbs > README.md; echo"
   },
   "repository": {
     "type": "git",
@@ -52,8 +53,10 @@
     "commitizen": "^4.0.3",
     "cz-conventional-changelog": "^3.0.2",
     "eslint": "^6.0.1",
+    "eslint-plugin-jsdoc": "^15.8.3",
     "husky": "^3.0.1",
     "jest": "^24.8.0",
+    "jsdoc-to-markdown": "^5.0.0",
     "lint-staged": "^9.2.0",
     "prettier": "1.18.2",
     "standard-version": "^6.0.1"
