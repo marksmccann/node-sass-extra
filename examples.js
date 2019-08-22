@@ -6,13 +6,16 @@ fs.removeSync('test-compiled');
 
 const config = {
     // compile multiple files
-    file: ['test-files/test-scss-1.scss', 'test-files/nested/test-scss-2.scss'],
+    // file: ['test-files/test-scss-1.scss', 'test-files/nested/test-scss-2.scss'],
 
     // compile a single file
     // file: 'test-files/test-scss-1.scss',
 
+    // compile fake single file
+    // file: 'test-files/non-existant-file.scss',
+
     // compile multiple globs
-    // file: ['test-files/**/*.scss', 'test-files/**/*.sass'],
+    file: ['test-files/**/*.scss', 'test-files/**/*.sass'],
 
     // compile a single glob
     // file: 'test-files/**/*.scss',
@@ -27,7 +30,7 @@ const config = {
     // ],
 
     // output to a directory
-    output: 'dest',
+    // output: 'dest',
     outFile: 'dest',
 
     // dynamic output
@@ -61,7 +64,7 @@ const config = {
     // outFile: 'dest/compiled.css',
 
     // source map
-    sourceMap: true,
+    // sourceMap: true,
 
     // single source map
     // sourceMap: 'dest/compiled.css.map',
@@ -95,3 +98,14 @@ console.log('\n--- Sync ---\n', renderSync(config));
 //     .catch(err => {
 //         console.log(err);
 //     });
+
+//
+// Async (w/ Callback)
+//
+// render(config, (err, compiled) => {
+//     if (err) {
+//         console.log(err);
+//     } else {
+//         console.log('\n--- Async (w/ Callback) ---\n', compiled);
+//     }
+// });
