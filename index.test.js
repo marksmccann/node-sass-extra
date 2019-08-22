@@ -405,6 +405,28 @@ describe('index.js', () => {
                 expect(err.message).toContain('valid file path');
             }
         });
+
+        test('asynchronously compile sass via a callback', done => {
+            render(testConfig.multiDataSource, (error, results) => {
+                expect(error).toBe(undefined);
+                expect(results.length).toBe(2);
+                expect(areAllCompiled(results)).toBe(true);
+                done();
+            });
+        });
+
+        test('asynchronously throws error via callback', done => {
+            render(
+                {
+                    file: 'nonexistant.scss',
+                },
+                (error, results) => {
+                    expect(error.message).toContain('not found');
+                    expect(results).toBe(undefined);
+                    done();
+                }
+            );
+        });
     });
 
     //

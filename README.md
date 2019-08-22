@@ -14,17 +14,17 @@ The Node API for `node-sass-extra`.
 
 
 * [node-sass-extra](#module_node-sass-extra)
-    * [~render(options)](#module_node-sass-extra..render) ⇒ <code>Promise</code>
+    * [~render(options, [callback])](#module_node-sass-extra..render) ⇒ <code>Promise</code>
     * [~renderSync(options)](#module_node-sass-extra..renderSync) ⇒ [<code>nodeSassResult</code>](https://github.com/sass/node-sass#result-object) \| [<code>Array.&lt;nodeSassResult&gt;</code>](https://github.com/sass/node-sass#result-object)
     * [~options](#module_node-sass-extra..options) : <code>object</code>
     * [~setOutFile](#module_node-sass-extra..setOutFile) ⇒ <code>string</code>
-    * [~setSourceMap](#module_node-sass-extra..setSourceMap) ⇒ <code>string</code>
+    * [~setSourceMap](#module_node-sass-extra..setSourceMap) ⇒ <code>string</code> \| <code>boolean</code>
 
 <a name="module_node-sass-extra..render"></a>
 
-### node-sass-extra~render(options) ⇒ <code>Promise</code>
-Asynchronous rendering; maps to nodeSass.render. Resolves with [nodeSassResult](https://github.com/sass/node-sass#result-object);
-rejects with [nodeSassError](https://github.com/sass/node-sass#error-object). If more than one source is compiled an array of results is returned.
+### node-sass-extra~render(options, [callback]) ⇒ <code>Promise</code>
+Asynchronous rendering; resolves with [nodeSassResult(s)](https://github.com/sass/node-sass#result-object), rejects with
+[nodeSassError](https://github.com/sass/node-sass#error-object). If more than one source is compiled an array of results is returned.
 
 **Kind**: inner method of [<code>node-sass-extra</code>](#module_node-sass-extra)  
 **Access**: public  
@@ -32,6 +32,7 @@ rejects with [nodeSassError](https://github.com/sass/node-sass#error-object). If
 | Param | Type |
 | --- | --- |
 | options | [<code>options</code>](#module_node-sass-extra..options) | 
+| [callback] | <code>function</code> | 
 
 **Example**  
 ```js
@@ -63,11 +64,25 @@ try {
     // ...
 }
 ```
+**Example**  
+```js
+const sass = require('node-sass-extra');
+
+sass.render(
+    {
+        file: 'src/*.scss',
+        output: 'css'
+        [, ...options]
+    },
+    function(err, result) {
+        // ...
+    }
+);
+```
 <a name="module_node-sass-extra..renderSync"></a>
 
 ### node-sass-extra~renderSync(options) ⇒ [<code>nodeSassResult</code>](https://github.com/sass/node-sass#result-object) \| [<code>Array.&lt;nodeSassResult&gt;</code>](https://github.com/sass/node-sass#result-object)
-Synchronous rendering; maps to nodeSass.renderSync. If more than one source is compiled
-an array of results is returned.
+Synchronous rendering. If more than one source is compiled an array of results is returned.
 
 **Kind**: inner method of [<code>node-sass-extra</code>](#module_node-sass-extra)  
 **Throws**:
@@ -90,20 +105,6 @@ const result = sass.renderSync({
     [, ...options]
 });
 ```
-**Example**  
-```js
-const sass = require('node-sass-extra');
-
-try {
-    const result = sass.renderSync({
-        file: 'src/*.scss',
-        output: 'css'
-        [, ...options]
-    });
-} catch(err) {
-    // ...
-};
-```
 <a name="module_node-sass-extra..options"></a>
 
 ### node-sass-extra~options : <code>object</code>
@@ -117,9 +118,9 @@ A `node-sass-extra` config object.
 | --- | --- | --- |
 | data | <code>string</code> \| <code>Array.&lt;string&gt;</code> | String(s) to be compiled. |
 | file | <code>string</code> \| <code>Array.&lt;string&gt;</code> | File(s) to be compiled; can be a file path or a glob pattern. |
-| output | <code>string</code> \| [<code>setOutFile</code>](#module_node-sass-extra..setOutFile) | The output destination; can be a file path, a directory, or a callback that returns a file path or directory. Must be/return a file path when paried with `data`. If provided, files will be written to disk. |
-| outFile | <code>string</code> \| [<code>setOutFile</code>](#module_node-sass-extra..setOutFile) | The output destination; can be a file path, a directory, or a callback that returns a file path or directory. Must be/return a file path when paried with `data`. `output` will override this value if provided. |
-| sourceMap | <code>string</code> \| [<code>setSourceMap</code>](#module_node-sass-extra..setSourceMap) | The source map destination; can be a boolean, a file path, a directory, or a callback that returns a file path or directory. If a boolean or directory, the file will be named after the output file. |
+| output | <code>string</code> \| [<code>setOutFile</code>](#module_node-sass-extra..setOutFile) | The output destination; can be a file path, a directory, or a [callback](#module_node-sass-extra..setOutFile) that returns a file path or directory. Must be/return a file path when paried with `data`. If provided, files will be written to disk. |
+| outFile | <code>string</code> \| [<code>setOutFile</code>](#module_node-sass-extra..setOutFile) | The output destination; can be a file path, a directory, or a [callback](#module_node-sass-extra..setOutFile) that returns a file path or directory. Must be/return a file path when paried with `data`. `output` will override this value if provided. |
+| sourceMap | <code>string</code> \| [<code>setSourceMap</code>](#module_node-sass-extra..setSourceMap) | The source map destination; can be a boolean, a file path, a directory, or a [callback](#module_node-sass-extra..setSourceMap) that returns a boolean, file path or directory. If a boolean or directory, the file will be named after the output file. |
 | ... | <code>\*</code> | [nodeSassOptions](https://github.com/sass/node-sass#options) |
 
 **Example**  
@@ -150,7 +151,7 @@ A `node-sass-extra` config object.
 ```
 **Example**  
 ```js
-// compiles and creates source map; writes css and source map to `css/file.css.map`
+// compiles and creates source map; writes css to `css/file.css` and source map to `css/file.css.map`
 {
     data: '$color: red; .foo { background: $color; } ...',
     output: 'css/file.css',
@@ -160,11 +161,10 @@ A `node-sass-extra` config object.
 <a name="module_node-sass-extra..setOutFile"></a>
 
 ### node-sass-extra~setOutFile ⇒ <code>string</code>
-Callback for dynamically defining the output path via the source
-file; must return a valid file path.
+Callback for dynamically defining the output path via the source file.
 
 **Kind**: inner typedef of [<code>node-sass-extra</code>](#module_node-sass-extra)  
-**Returns**: <code>string</code> - A file path.  
+**Returns**: <code>string</code> - A file path or directory.  
 
 | Param | Type | Description |
 | --- | --- | --- |
@@ -182,12 +182,12 @@ render({
 ```
 <a name="module_node-sass-extra..setSourceMap"></a>
 
-### node-sass-extra~setSourceMap ⇒ <code>string</code>
+### node-sass-extra~setSourceMap ⇒ <code>string</code> \| <code>boolean</code>
 Callback for dynamically defining the source map's output path via the
-output and/or source files; must return a valid file path.
+output and/or source file.
 
 **Kind**: inner typedef of [<code>node-sass-extra</code>](#module_node-sass-extra)  
-**Returns**: <code>string</code> - A file path.  
+**Returns**: <code>string</code> \| <code>boolean</code> - A file path, directory or boolean.  
 
 | Param | Type | Description |
 | --- | --- | --- |
