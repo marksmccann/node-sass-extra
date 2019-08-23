@@ -20,6 +20,9 @@ const testConfig = {
     singleSource: {
         file: path.join(sourceDir, 'test-scss-1.scss'),
     },
+    unknownSource: {
+        file: path.join(sourceDir, 'unknown.scss'),
+    },
     multiSource: {
         file: [
             path.join(sourceDir, 'test-scss-1.scss'),
@@ -297,27 +300,34 @@ describe('index.js', () => {
         });
 
         test('throws an error if required props are not provided', async () => {
+            let message = '';
+
             try {
                 await render();
             } catch (err) {
-                expect(err.message).toEqual(
+                message = err.message;
+            } finally {
+                expect(message).toEqual(
                     'Either a "data" or "file" option is required.'
                 );
             }
         });
 
-        test('throws an error if a source file is not found', async () => {
+        test('throws an error if an unknown source is provided', async () => {
+            let message = '';
+
             try {
-                await render({
-                    file: 'nonexistant.scss',
-                });
+                await render(testConfig.unknownSource);
             } catch (err) {
-                expect(err.message).toContain('not found');
+                message = err.message;
+            } finally {
+                expect(message).toContain('not found');
             }
         });
 
         test('throws an error on a `data` when `outFile` is a directory', async () => {
             const { dataSource } = testConfig;
+            let message = '';
 
             try {
                 await render({
@@ -325,7 +335,9 @@ describe('index.js', () => {
                     outFile: 'dir',
                 });
             } catch (err) {
-                expect(err.message).toContain('valid file path');
+                message = err.message;
+            } finally {
+                expect(message).toContain('valid file path');
             }
         });
 
@@ -379,6 +391,7 @@ describe('index.js', () => {
 
         test('throws an error if `sourceMap` is provided without `outFile` or `output`', async () => {
             const { singleSource } = testConfig;
+            let message = '';
 
             try {
                 await render({
@@ -386,7 +399,9 @@ describe('index.js', () => {
                     sourceMap: true,
                 });
             } catch (err) {
-                expect(err.message).toEqual(
+                message = err.message;
+            } finally {
+                expect(message).toEqual(
                     'Either "output" or "outFile" option is required with "sourceMap".'
                 );
             }
@@ -408,7 +423,7 @@ describe('index.js', () => {
 
         test('asynchronously compile sass via a callback', done => {
             render(testConfig.multiDataSource, (error, results) => {
-                expect(error).toBe(undefined);
+                expect(error).toBe(null);
                 expect(results.length).toBe(2);
                 expect(areAllCompiled(results)).toBe(true);
                 done();
@@ -416,16 +431,11 @@ describe('index.js', () => {
         });
 
         test('asynchronously throws error via callback', done => {
-            render(
-                {
-                    file: 'nonexistant.scss',
-                },
-                (error, results) => {
-                    expect(error.message).toContain('not found');
-                    expect(results).toBe(undefined);
-                    done();
-                }
-            );
+            render(testConfig.unknownSource, (error, results) => {
+                expect(error.message).toContain('not found');
+                expect(results).toBe(undefined);
+                done();
+            });
         });
     });
 
@@ -563,27 +573,34 @@ describe('index.js', () => {
         });
 
         test('throws an error if required props are not provided', () => {
+            let message = '';
+
             try {
                 renderSync();
             } catch (err) {
-                expect(err.message).toEqual(
+                message = err.message;
+            } finally {
+                expect(message).toEqual(
                     'Either a "data" or "file" option is required.'
                 );
             }
         });
 
-        test('throws an error if a source file is not found', () => {
+        test('throws an error if an unknown source is provided', async () => {
+            let message = '';
+
             try {
-                renderSync({
-                    file: 'nonexistant.scss',
-                });
+                await renderSync(testConfig.unknownSource);
             } catch (err) {
-                expect(err.message).toContain('not found');
+                message = err.message;
+            } finally {
+                expect(message).toContain('not found');
             }
         });
 
         test('throws an error on a `data` when `outFile` is a directory', () => {
             const { dataSource } = testConfig;
+            let message = '';
 
             try {
                 renderSync({
@@ -591,7 +608,9 @@ describe('index.js', () => {
                     outFile: 'dir',
                 });
             } catch (err) {
-                expect(err.message).toContain('valid file path');
+                message = err.message;
+            } finally {
+                expect(message).toContain('valid file path');
             }
         });
 
@@ -645,6 +664,7 @@ describe('index.js', () => {
 
         test('throws an error if `sourceMap` is provided without `outFile` or `output`', () => {
             const { singleSource } = testConfig;
+            let message = '';
 
             try {
                 renderSync({
@@ -652,23 +672,11 @@ describe('index.js', () => {
                     sourceMap: true,
                 });
             } catch (err) {
-                expect(err.message).toEqual(
+                message = err.message;
+            } finally {
+                expect(message).toEqual(
                     'Either "output" or "outFile" option is required with "sourceMap".'
                 );
-            }
-        });
-
-        test('throws an error `sourceMap` is not a valid file path', () => {
-            const { singleSource, outputDir } = testConfig;
-
-            try {
-                renderSync({
-                    ...singleSource,
-                    outFile: outputDir,
-                    sourceMap: 'dir',
-                });
-            } catch (err) {
-                expect(err.message).toContain('valid file path');
             }
         });
     });
