@@ -448,8 +448,6 @@ function validateOptions(options = {}) {
  * );
  */
 async function render(options, callback) {
-    const callbackArgs = {};
-
     try {
         const { data, file, output } = validateOptions(options);
         const sources = file ? await getSourceFiles(file) : data;
@@ -473,13 +471,17 @@ async function render(options, callback) {
         }
 
         const results = marshalArray(compiled);
-        callbackArgs.results = results;
+
+        if (typeof callback === 'function') {
+            callback(null, results);
+        }
+
         return results;
     } catch (err) {
-        callbackArgs.error = err;
-    } finally {
         if (typeof callback === 'function') {
-            callback(callbackArgs.error, callbackArgs.results);
+            callback(err);
+        } else {
+            throw err;
         }
     }
 }
