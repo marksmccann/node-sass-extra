@@ -294,7 +294,7 @@ function getOutFile(source, outFile) {
     // throw error if the determined output is not a valid file path
     if (!isFile(outFile)) {
         throw new Error(
-            `"${outFile}" is not a valid file path for "output" or "outFile".`
+            `Invalid output: "${outFile}" is not a valid file path for "output" or "outFile".`
         );
     }
 
@@ -379,16 +379,22 @@ function getTasks(sources, options) {
  * @throws {Error}
  * @private
  */
-function validateOptions(options = {}) {
+function validateOptions(options) {
+    if (typeof options !== 'object') {
+        throw new Error('Invalid: options is not an object');
+    }
+
     const { data, file, output, outFile, sourceMap } = options;
 
     if (!file && !data) {
-        throw new Error('Either a "data" or "file" option is required.');
+        throw new Error(
+            'No input specified: either the "data" or "file" option is required.'
+        );
     }
 
     if (sourceMap && (!output && !outFile)) {
         throw new Error(
-            'Either "output" or "outFile" option is required with "sourceMap".'
+            'No output specified: either the "output" or "outFile" option is required with "sourceMap".'
         );
     }
 
