@@ -299,17 +299,27 @@ describe('index.js', () => {
             expect(areAllDynamic).toBe(true);
         });
 
+        test('throws an error if invalid props are provided', async () => {
+            let message = '';
+
+            try {
+                await render('foo');
+            } catch (err) {
+                message = err.message;
+            } finally {
+                expect(message).toContain('Invalid');
+            }
+        });
+
         test('throws an error if required props are not provided', async () => {
             let message = '';
 
             try {
-                await render();
+                await render({});
             } catch (err) {
                 message = err.message;
             } finally {
-                expect(message).toEqual(
-                    'Either a "data" or "file" option is required.'
-                );
+                expect(message).toContain('is required');
             }
         });
 
@@ -337,7 +347,7 @@ describe('index.js', () => {
             } catch (err) {
                 message = err.message;
             } finally {
-                expect(message).toContain('valid file path');
+                expect(message).toContain('Invalid');
             }
         });
 
@@ -401,9 +411,7 @@ describe('index.js', () => {
             } catch (err) {
                 message = err.message;
             } finally {
-                expect(message).toEqual(
-                    'Either "output" or "outFile" option is required with "sourceMap".'
-                );
+                expect(message).toContain('is required');
             }
         });
 
@@ -417,7 +425,7 @@ describe('index.js', () => {
                     sourceMap: 'dir',
                 });
             } catch (err) {
-                expect(err.message).toContain('valid file path');
+                expect(err.message).toContain('Invalid');
             }
         });
 
@@ -572,17 +580,27 @@ describe('index.js', () => {
             expect(areAllDynamic).toBe(true);
         });
 
+        test('throws an error if invalid props are provided', async () => {
+            let message = '';
+
+            try {
+                renderSync('foo');
+            } catch (err) {
+                message = err.message;
+            } finally {
+                expect(message).toContain('Invalid');
+            }
+        });
+
         test('throws an error if required props are not provided', () => {
             let message = '';
 
             try {
-                renderSync();
+                renderSync({});
             } catch (err) {
                 message = err.message;
             } finally {
-                expect(message).toEqual(
-                    'Either a "data" or "file" option is required.'
-                );
+                expect(message).toContain('is required');
             }
         });
 
@@ -610,7 +628,7 @@ describe('index.js', () => {
             } catch (err) {
                 message = err.message;
             } finally {
-                expect(message).toContain('valid file path');
+                expect(message).toContain('Invalid');
             }
         });
 
@@ -674,9 +692,7 @@ describe('index.js', () => {
             } catch (err) {
                 message = err.message;
             } finally {
-                expect(message).toEqual(
-                    'Either "output" or "outFile" option is required with "sourceMap".'
-                );
+                expect(message).toContain('is required');
             }
         });
     });
