@@ -14,12 +14,32 @@ The Node API for `node-sass-extra`.
 
 
 * [node-sass-extra](#module_node-sass-extra)
+    * [~info](#module_node-sass-extra..info) : <code>string</code>
     * [~render(options, [callback])](#module_node-sass-extra..render) ⇒ <code>Promise</code>
     * [~renderSync(options)](#module_node-sass-extra..renderSync) ⇒ [<code>nodeSassResult</code>](https://github.com/sass/node-sass#result-object) \| [<code>Array.&lt;nodeSassResult&gt;</code>](https://github.com/sass/node-sass#result-object)
     * [~options](#module_node-sass-extra..options) : <code>object</code>
     * [~setOutFile](#module_node-sass-extra..setOutFile) ⇒ <code>string</code>
     * [~setSourceMap](#module_node-sass-extra..setSourceMap) ⇒ <code>string</code> \| <code>boolean</code>
 
+<a name="module_node-sass-extra..info"></a>
+
+### node-sass-extra~info : <code>string</code>
+Version information for `node-sass-extra`, `node-sass` and `libsass`.
+
+**Kind**: inner constant of [<code>node-sass-extra</code>](#module_node-sass-extra)  
+**Access**: public  
+**Example**  
+```js
+const sass = require('node-sass-extra');
+
+console.log(sass.info);
+
+// outputs something like:
+
+// node-sass-extra 0.1.0   (Wrapper)       [JavaScript]
+// node-sass       2.0.1   (Wrapper)       [JavaScript]
+// libsass         3.1.0   (Sass Compiler) [C/C++]
+```
 <a name="module_node-sass-extra..render"></a>
 
 ### node-sass-extra~render(options, [callback]) ⇒ <code>Promise</code>
@@ -39,8 +59,7 @@ Asynchronous rendering; resolves with [nodeSassResult(s)](https://github.com/sas
 const sass = require('node-sass-extra');
 
 sass.render({
-    file: 'src/*.scss',
-    output: 'css'
+    file: 'src/*.scss'
     [, ...options]
 })
     .then(result => {
@@ -56,8 +75,7 @@ const sass = require('node-sass-extra');
 
 try {
     const result = await sass.render({
-        file: 'src/*.scss',
-        output: 'css'
+        file: 'src/*.scss'
         [, ...options]
     });
 } catch (err) {
@@ -70,8 +88,7 @@ const sass = require('node-sass-extra');
 
 sass.render(
     {
-        file: 'src/*.scss',
-        output: 'css'
+        file: 'src/*.scss'
         [, ...options]
     },
     function(err, result) {
@@ -100,8 +117,7 @@ Synchronous rendering. If more than one source is compiled an array of results i
 const sass = require('node-sass-extra');
 
 const result = sass.renderSync({
-    file: 'src/*.scss',
-    output: 'css'
+    file: 'src/*.scss'
     [, ...options]
 });
 ```
