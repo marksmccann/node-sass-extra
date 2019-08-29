@@ -8,6 +8,8 @@ const path = require('path');
 const fs = require('fs-extra');
 const glob = require('glob');
 const sass = require('node-sass');
+const eol = require('os').EOL;
+const pkg = require('./package.json');
 
 /**
  * A `node-sass-extra` config object.
@@ -104,6 +106,22 @@ const sass = require('node-sass');
  * @external nodeSassError
  * @see https://github.com/sass/node-sass#error-object
  */
+
+/**
+ * Gets version information.
+ *
+ * @returns {string}
+ * @private
+ */
+function getVersionInfo() {
+    const versionInfo = [
+        'node-sass-extra',
+        pkg.version,
+        '(Wrapper)',
+        '[JavaScript]',
+    ].join('\t');
+    return versionInfo + eol + sass.info;
+}
 
 /**
  * Utility for determining whether a given path is a file.
@@ -415,8 +433,7 @@ function validateOptions(options) {
  * const sass = require('node-sass-extra');
  *
  * sass.render({
- *     file: 'src/*.scss',
- *     output: 'css'
+ *     file: 'src/*.scss'
  *     [, ...options]
  * })
  *     .then(result => {
@@ -431,8 +448,7 @@ function validateOptions(options) {
  *
  * try {
  *     const result = await sass.render({
- *         file: 'src/*.scss',
- *         output: 'css'
+ *         file: 'src/*.scss'
  *         [, ...options]
  *     });
  * } catch (err) {
@@ -444,8 +460,7 @@ function validateOptions(options) {
  *
  * sass.render(
  *     {
- *         file: 'src/*.scss',
- *         output: 'css'
+ *         file: 'src/*.scss'
  *         [, ...options]
  *     },
  *     function(err, result) {
@@ -504,8 +519,7 @@ async function render(options, callback) {
  * const sass = require('node-sass-extra');
  *
  * const result = sass.renderSync({
- *     file: 'src/*.scss',
- *     output: 'css'
+ *     file: 'src/*.scss'
  *     [, ...options]
  * });
  */
@@ -530,8 +544,29 @@ function renderSync(options) {
     return marshalArray(compiled);
 }
 
+/**
+ * Version information for `node-sass-extra`, `node-sass` and `libsass`.
+ *
+ * @constant {string}
+ * @public
+ *
+ * @example
+ * const sass = require('node-sass-extra');
+ *
+ * console.log(sass.info);
+ *
+ * // outputs something like:
+ *
+ * // node-sass-extra 0.1.0   (Wrapper)       [JavaScript]
+ * // node-sass       2.0.1   (Wrapper)       [JavaScript]
+ * // libsass         3.1.0   (Sass Compiler) [C/C++]
+ */
+const info = getVersionInfo();
+
 // Expose the API
 module.exports = {
+    ...sass,
     render,
     renderSync,
+    info,
 };
