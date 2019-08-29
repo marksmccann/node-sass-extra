@@ -450,7 +450,7 @@ function validateOptions(options = {}) {
 async function render(options, callback) {
     try {
         const { data, file, output } = validateOptions(options);
-        const sources = file ? await getSourceFiles(file) : data;
+        const sources = data || (await getSourceFiles(file));
         const tasks = arrayify(getTasks(sources, options));
         const compiled = await Promise.all(tasks.map(task => compile(task)));
 
@@ -505,7 +505,7 @@ async function render(options, callback) {
  */
 function renderSync(options) {
     const { data, file, output } = validateOptions(options);
-    const sources = file ? getSourceFilesSync(file) : data;
+    const sources = data || getSourceFilesSync(file);
     const tasks = arrayify(getTasks(sources, options));
     const compiled = tasks.map(task => compileSync(task));
 
