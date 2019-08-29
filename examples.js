@@ -1,5 +1,5 @@
 const fs = require('fs-extra');
-const { render, renderSync } = require('./index'); // eslint-disable-line
+const sass = require('./index'); // eslint-disable-line
 
 fs.removeSync('dest');
 fs.removeSync('test-compiled');
@@ -86,12 +86,12 @@ const config = {
 //
 // Sync
 //
-console.log('\n--- Sync ---\n', renderSync(config));
+console.log('\n--- Sync ---\n', sass.renderSync(config));
 
 //
 // Async
 //
-// render(config)
+// sass.render(config)
 //     .then(compiled => {
 //         console.log('\n--- Async ---\n', compiled);
 //     })
@@ -102,10 +102,23 @@ console.log('\n--- Sync ---\n', renderSync(config));
 //
 // Async (w/ Callback)
 //
-// render(config, (err, compiled) => {
+// sass.render(config, (err, compiled) => {
 //     if (err) {
 //         console.log(err);
 //     } else {
 //         console.log('\n--- Async (w/ Callback) ---\n', compiled);
 //     }
 // });
+
+//
+// Info
+//
+// console.log(sass.info);
+
+//
+// Types
+//
+// console.log(sass.types);
+// console.log(sass.TRUE);
+// console.log(sass.FALSE);
+// console.log(sass.NULL);
