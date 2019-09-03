@@ -208,14 +208,13 @@ output and/or source file.
 | Param | Type | Description |
 | --- | --- | --- |
 | outFile | <code>string</code> | The output file path. |
-| srcFile | <code>string</code> | The source file path. |
 
 **Example**  
 ```js
 render({
     file: 'src/path/to/file.scss',
     outFile: 'css',
-    sourceMap: (outFile, srcFile) => {
+    sourceMap: (outFile) => {
         // returns 'map/file.css.map';
         return outFile.replace(/css\//, 'map/');
     }
