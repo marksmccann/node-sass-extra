@@ -445,6 +445,31 @@ describe('index.js', () => {
                 done();
             });
         });
+
+        test('concat data sources with single output', async () => {
+            const results = await render({
+                ...testConfig.multiDataSource,
+                ...testConfig.singleOutFile,
+            });
+
+            const css = results.css.toString();
+
+            expect(css.indexOf('color: red')).toBeGreaterThan(-1);
+            expect(css.indexOf('padding: 10px;')).toBeGreaterThan(-1);
+        });
+
+        test('concat file sources with single output', async () => {
+            const results = await render({
+                ...testConfig.multiSource,
+                ...testConfig.singleOutFile,
+            });
+
+            const css = results.css.toString();
+
+            expect(css.indexOf('test-scss-1')).toBeGreaterThan(-1);
+            expect(css.indexOf('test-scss-2')).toBeGreaterThan(-1);
+            expect(css.indexOf('test-scss-3')).toBeGreaterThan(-1);
+        });
     });
 
     //
@@ -694,6 +719,31 @@ describe('index.js', () => {
             } finally {
                 expect(message).toContain('is required');
             }
+        });
+
+        test('concat data sources with single output', () => {
+            const results = renderSync({
+                ...testConfig.multiDataSource,
+                ...testConfig.singleOutFile,
+            });
+
+            const css = results.css.toString();
+
+            expect(css.indexOf('color: red')).toBeGreaterThan(-1);
+            expect(css.indexOf('padding: 10px;')).toBeGreaterThan(-1);
+        });
+
+        test('concat file sources with single output', () => {
+            const results = renderSync({
+                ...testConfig.multiSource,
+                ...testConfig.singleOutFile,
+            });
+
+            const css = results.css.toString();
+
+            expect(css.indexOf('test-scss-1')).toBeGreaterThan(-1);
+            expect(css.indexOf('test-scss-2')).toBeGreaterThan(-1);
+            expect(css.indexOf('test-scss-3')).toBeGreaterThan(-1);
         });
     });
 });
