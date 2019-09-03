@@ -78,14 +78,13 @@ const pkg = require('./package.json');
  *
  * @callback setSourceMap
  * @param {string} outFile - The output file path.
- * @param {string} srcFile - The source file path.
  * @returns {string|boolean} A file path, directory or boolean.
  *
  * @example
  * render({
  *     file: 'src/path/to/file.scss',
  *     outFile: 'css',
- *     sourceMap: (outFile, srcFile) => {
+ *     sourceMap: (outFile) => {
  *         // returns 'map/file.css.map';
  *         return outFile.replace(/css\//, 'map/');
  *     }
@@ -155,6 +154,23 @@ function arrayify(item) {
  */
 function marshalArray(arrayData) {
     return arrayData.length === 1 ? arrayData[0] : arrayData;
+}
+
+/**
+ * Joins a list of file paths as sass import statements.
+ *
+ * @param {string|string[]} files - file paths
+ * @returns {string}
+ * @private
+ *
+ * @example
+ * const joined = joinSourceFiles(['file1.scss', 'file2.scss']);
+ * console.log(joined); // "@import 'file1.scss';\n@import 'file2.scss';"
+ */
+function joinSourceFiles(files) {
+    return arrayify(files)
+        .map(file => `@import '${path.resolve(file)}';`)
+        .join('\n');
 }
 
 /**
@@ -324,16 +340,15 @@ function getOutFile(source, outFile) {
  * Determines the source map file path for a given source via the "sourceMap"
  * config option and an output file path; returns an absolute path.
  *
- * @param {string} source
- * @param {boolean|string|module:node-sass-extra~setSourceMap} sourceMap
  * @param {string} outFile
+ * @param {boolean|string|module:node-sass-extra~setSourceMap} sourceMap
  * @returns {string}
  * @private
  */
-function getSourceMap(source, sourceMap, outFile) {
+function getSourceMap(outFile, sourceMap) {
     // dynamic source map; run the given iterator function
     if (typeof sourceMap === 'function') {
-        sourceMap = sourceMap(outFile, source);
+        sourceMap = sourceMap(outFile);
     }
 
     // source map is a boolean; use the output file
@@ -380,13 +395,83 @@ function getTasks(sources, options) {
     }
 
     if (sourceMap) {
-        task.sourceMap = getSourceMap(sources, sourceMap, task.outFile);
+        task.sourceMap = getSourceMap(task.outFile, sourceMap);
     }
 
     return {
         ...nodeSassOptions,
         ...task,
     };
+}
+
+/**
+ * Reduces a list of tasks by their common output files; tasks that share an output file will
+ * have their sources combined. Data sources are concatenated directly; file sources are concatenated
+ * as sass import statements.
+ *
+ * @param {external:nodeSassOptions|external:nodeSassOptions[]} tasks
+ * @returns {external:nodeSassOptions[]}
+ * @private
+ *
+ * @example
+ * const tasks = reduceTasksByOutFile([
+ *     {data: '.class1 {}', outFile: 'dest.css'},
+ *     {data: '.class2 {}', outFile: 'dest.css'}
+ * ]);
+ *
+ * console.log(tasks);
+ * // [{
+ * //     data: '.class1 {} .class2 {}',
+ * //     outFile: 'dest.css'
+ * // }]
+ *
+ * @example
+ * const tasks = reduceTasksByOutFile([
+ *     {file: 'file1.scss', outFile: 'dest.css'},
+ *     {file: 'file2.scss', outFile: 'dest.css'}
+ * ]);
+ *
+ * console.log(tasks);
+ * // [{
+ * //     data: '@import "file1.css"; @import "file2.css"',
+ * //     outFile: 'dest.css'
+ * // }]
+ */
+function reduceTasksByOutFile(tasks) {
+    const sourceType = tasks[0].data ? 'data' : 'file';
+    const outFileLookup = [];
+    const reducedTasks = [];
+
+    // groups tasks with common output files, arrayifing their sources
+    arrayify(tasks).forEach(({ ...task }) => {
+        const index = outFileLookup.indexOf(task.outFile);
+        const source = task[sourceType];
+
+        if (index === -1) {
+            outFileLookup.push(task.outFile);
+            task[sourceType] = arrayify(source);
+            reducedTasks.push(task);
+        } else {
+            reducedTasks[index][sourceType].push(source);
+        }
+    });
+
+    // map reduced tasks and concat their sources
+    return reducedTasks.map(task => {
+        const sources = task[sourceType];
+
+        if (sources.length === 1) {
+            task[sourceType] = sources[0];
+        } else {
+            delete task.file;
+            task.data =
+                sourceType === 'data'
+                    ? sources.join('\n')
+                    : joinSourceFiles(sources);
+        }
+
+        return task;
+    });
 }
 
 /**
@@ -472,7 +557,12 @@ async function render(options, callback) {
     try {
         const { data, file, output } = validateOptions(options);
         const sources = data || (await getSourceFiles(file));
-        const tasks = arrayify(getTasks(sources, options));
+        let tasks = arrayify(getTasks(sources, options));
+
+        if (tasks[0].outFile) {
+            tasks = reduceTasksByOutFile(tasks);
+        }
+
         const compiled = await Promise.all(tasks.map(task => compile(task)));
 
         // write files to disk?
@@ -526,7 +616,12 @@ async function render(options, callback) {
 function renderSync(options) {
     const { data, file, output } = validateOptions(options);
     const sources = data || getSourceFilesSync(file);
-    const tasks = arrayify(getTasks(sources, options));
+    let tasks = arrayify(getTasks(sources, options));
+
+    if (tasks[0].outFile) {
+        tasks = reduceTasksByOutFile(tasks);
+    }
+
     const compiled = tasks.map(task => compileSync(task));
 
     // write files to disk?
