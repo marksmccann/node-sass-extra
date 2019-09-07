@@ -1,11 +1,49 @@
 # node-sass-extra
 
-A drop-in replacement for [node-sass](https://github.com/sass/node-sass) that adds support for globs, promises and more.
-
 [![Commitizen friendly](https://img.shields.io/badge/commitizen-friendly-brightgreen.svg)](http://commitizen.github.io/cz-cli/)
+[![Open Source Love](https://badges.frapsoft.com/os/mit/mit.svg?v=102)](https://github.com/ellerbrock/open-source-badge/)
+[![Open Source Love](https://badges.frapsoft.com/os/v2/open-source.svg?v=102)](https://github.com/ellerbrock/open-source-badge/)
+[![GitHub issues](https://img.shields.io/github/issues/marksmccann/node-sass-extra)](https://github.com/marksmccann/node-sass-extra/issues)
+[![Build Status](https://travis-ci.com/marksmccann/node-sass-extra.svg?branch=master)](https://travis-ci.com/marksmccann/node-sass-extra)
 
+A drop-in replacement for [node-sass](https://github.com/sass/node-sass)' Node API that adds support for globs, promises and more.
 
-# API
+:heavy_check_mark: Glob support  
+:heavy_check_mark: Promise support  
+:heavy_check_mark: Write files  
+:heavy_check_mark: Write source maps  
+:heavy_check_mark: Output to directory  
+:heavy_check_mark: Dynamically define output destination  
+:heavy_check_mark: Compile multiple files at once  
+:heavy_check_mark: Compile multiple files into single output  
+:heavy_check_mark: Sync and async support  
+:heavy_check_mark: Non-breaking `node-sass` API  
+
+## Install
+
+```shell
+npm install node-sass-extra -D
+```
+
+## Usage
+
+```js
+const sass = require('node-sass-extra');
+
+const results = await sass.render({
+    file: 'src/**/*.scss',
+    [, ...options]
+});
+
+// OR
+
+const results = sass.renderSync({
+    file: 'src/**/*.scss',
+    [, ...options]
+});
+```
+
+## API
 
 <a name="module_node-sass-extra"></a>
 
@@ -172,6 +210,23 @@ A `node-sass-extra` config object.
     data: '$color: red; .foo { background: $color; } ...',
     output: 'css/file.css',
     sourceMap: true
+}
+```
+**Example**  
+```js
+// compiles multiple files and writes all to single file
+{
+    file: 'src/*.scss',
+    output: 'main.css'
+}
+```
+**Example**  
+```js
+// compile compressed css and write to file with `.min` suffix
+{
+    file: 'src/*.scss',
+    output: srcFile => srcFile.replace(/.scss$/, '.min.css'),
+    outputStyle: 'compressed'
 }
 ```
 <a name="module_node-sass-extra..setOutFile"></a>
