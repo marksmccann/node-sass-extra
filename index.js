@@ -53,6 +53,21 @@ const pkg = require('./package.json');
  *     output: 'css/file.css',
  *     sourceMap: true
  * }
+ *
+ * @example
+ * // compiles multiple files and writes all to single file
+ * {
+ *     file: 'src/*.scss',
+ *     output: 'main.css'
+ * }
+ *
+ * @example
+ * // compile compressed css and write to file with `.min` suffix
+ * {
+ *     file: 'src/*.scss',
+ *     output: srcFile => srcFile.replace(/.scss$/, '.min.css'),
+ *     outputStyle: 'compressed'
+ * }
  */
 
 /**
