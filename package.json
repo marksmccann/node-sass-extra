@@ -1,6 +1,6 @@
 {
   "name": "node-sass-extra",
-  "version": "0.1.0",
+  "version": "0.0.0",
   "description": "A drop-in replacement for node-sass' Node API that adds support for globs, promises and more.",
   "main": "index.js",
   "engines": {
@@ -12,13 +12,19 @@
     "test": "jest --coverage",
     "test:watch": "jest --coverage --watch",
     "commit": "git cz",
+    "prerelease": "git checkout master && git pull origin master && npm i && validate",
     "release": "standard-version",
-    "docs": "jsdoc2md index.js -t README.hbs > README.md; echo"
+    "postrelease": "git push --follow-tags origin master && npm publish",
+    "docs": "jsdoc2md index.js -t README_TPL.hbs > README.md; echo",
+    "validate": "npm run lint && npm run test && prettier --check \"./*.js\""
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/marksmccann/node-sass-extra.git"
   },
+  "files": [
+    "index.js"
+  ],
   "keywords": [
     "node",
     "sass",
@@ -69,7 +75,11 @@
     }
   },
   "lint-staged": {
-    "*.js": "prettier --write"
+    "*.js": [
+      "prettier --write",
+      "npm run docs",
+      "git add"
+    ]
   },
   "config": {
     "commitizen": {
