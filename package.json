@@ -1,6 +1,6 @@
 {
   "name": "node-sass-extra",
-  "version": "0.1.0",
+  "version": "0.0.0",
   "description": "A drop-in replacement for node-sass' Node API that adds support for globs, promises and more.",
   "main": "index.js",
   "engines": {
@@ -12,7 +12,7 @@
     "test": "jest --coverage",
     "test:watch": "jest --coverage --watch",
     "commit": "git cz",
-    "prerelease": "git checkout master && git pull origin master && npm i && validate",
+    "prerelease": "git checkout master && git pull origin master && npm i && npm run validate",
     "release": "standard-version",
     "postrelease": "git push --follow-tags origin master && npm publish",
     "docs": "jsdoc2md index.js -t README_TPL.hbs > README.md; echo",
@@ -58,9 +58,9 @@
   "devDependencies": {
     "commitizen": "^4.0.3",
     "cz-conventional-changelog": "^3.0.2",
-    "eslint": "^6.0.1",
+    "eslint": "^6.4.0",
     "eslint-plugin-jsdoc": "^15.8.3",
-    "husky": "^3.0.1",
+    "husky": "^3.0.5",
     "jest": "^24.8.0",
     "jsdoc-to-markdown": "^5.0.0",
     "lint-staged": "^9.2.0",

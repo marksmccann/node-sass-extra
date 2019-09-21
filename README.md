@@ -1,12 +1,19 @@
 # node-sass-extra
 
-[![Commitizen friendly](https://img.shields.io/badge/commitizen-friendly-brightgreen.svg)](http://commitizen.github.io/cz-cli/)
-[![Open Source Love](https://badges.frapsoft.com/os/mit/mit.svg?v=102)](https://github.com/ellerbrock/open-source-badge/)
-[![Open Source Love](https://badges.frapsoft.com/os/v2/open-source.svg?v=102)](https://github.com/ellerbrock/open-source-badge/)
+![npm](https://img.shields.io/npm/v/node-sass-extra)
+![Travis (.org)](https://img.shields.io/travis/marksmccann/node-sass-extra)
+![Libraries.io dependency status for GitHub repo](https://img.shields.io/librariesio/github/marksmccann/node-sass-extra)
+[![GitHub stars](https://img.shields.io/github/stars/marksmccann/node-sass-extra)](https://github.com/marksmccann/node-sass-extra/stargazers)
 [![GitHub issues](https://img.shields.io/github/issues/marksmccann/node-sass-extra)](https://github.com/marksmccann/node-sass-extra/issues)
-[![Build Status](https://travis-ci.com/marksmccann/node-sass-extra.svg?branch=master)](https://travis-ci.com/marksmccann/node-sass-extra)
+[![GitHub license](https://img.shields.io/github/license/marksmccann/node-sass-extra)](https://github.com/marksmccann/node-sass-extra/blob/master/LICENSE)
+[![Open Source Love](https://badges.frapsoft.com/os/v2/open-source.svg?v=102)](https://github.com/ellerbrock/open-source-badge/)
+[![Commitizen friendly](https://img.shields.io/badge/commitizen-friendly-brightgreen.svg)](http://commitizen.github.io/cz-cli/)
 
 A drop-in replacement for [node-sass](https://github.com/sass/node-sass)' Node API that adds support for globs, promises and more.
+
+## Why?
+
+Well, so it can do these things...
 
 :heavy_check_mark: Glob support  
 :heavy_check_mark: Promise support  
@@ -173,13 +180,14 @@ A `node-sass-extra` config object.
 | data | <code>string</code> \| <code>Array.&lt;string&gt;</code> | String(s) to be compiled. |
 | file | <code>string</code> \| <code>Array.&lt;string&gt;</code> | File(s) to be compiled; can be a file path or a glob pattern. |
 | output | <code>string</code> \| [<code>setOutFile</code>](#module_node-sass-extra..setOutFile) | The output destination; can be a file path, a directory, or a [callback](#module_node-sass-extra..setOutFile) that returns a file path or directory. Must be/return a file path when paried with `data`. If provided, files will be written to disk. |
-| outFile | <code>string</code> \| [<code>setOutFile</code>](#module_node-sass-extra..setOutFile) | The output destination; can be a file path, a directory, or a [callback](#module_node-sass-extra..setOutFile) that returns a file path or directory. Must be/return a file path when paried with `data`. `output` will override this value if provided. |
-| sourceMap | <code>string</code> \| [<code>setSourceMap</code>](#module_node-sass-extra..setSourceMap) | The source map destination; can be a boolean, a file path, a directory, or a [callback](#module_node-sass-extra..setSourceMap) that returns a boolean, file path or directory. If a boolean or directory, the file will be named after the output file. |
+| outFile | <code>string</code> \| [<code>setOutFile</code>](#module_node-sass-extra..setOutFile) | The output destination; can be a file path, a directory, or a [callback](#module_node-sass-extra..setOutFile) that returns a file path or directory. Must be/return a file path when paried with `data`. `output` will override this value if provided. Does NOT write files to disk. |
+| sourceMap | <code>string</code> \| [<code>setSourceMap</code>](#module_node-sass-extra..setSourceMap) | The source map destination; can be a boolean, a file path, a directory, or a [callback](#module_node-sass-extra..setSourceMap) that returns a boolean, file path or directory. If a boolean or directory, the file will be named after the output file. If paired with `output`, source maps will be written to disk. |
+| globOptions | <code>object</code> | The [configuration options](https://www.npmjs.com/package/glob#options) for the glob pattern. |
 | ... | <code>\*</code> | [nodeSassOptions](https://github.com/sass/node-sass#options) |
 
 **Example**  
 ```js
-// compiles and writes file
+// compiles a single file and writes to disk
 {
     file: 'src/file.scss',
     output: 'css/file.css'
@@ -187,7 +195,7 @@ A `node-sass-extra` config object.
 ```
 **Example**  
 ```js
-// compiles and creates source maps, but does NOT write them
+// compiles sass and creates source maps, but does NOT write them
 {
     file: 'src/*.scss',
     outFile: 'css',
@@ -196,7 +204,7 @@ A `node-sass-extra` config object.
 ```
 **Example**  
 ```js
-// compiles and creates source maps; writes css to `css/` and source maps to `maps/`
+// compiles sass and creates source maps; writes css to `css/` and source maps to `maps/`
 {
     file: ['src/file1.scss', 'src/file2.scss'],
     output: 'css',
@@ -205,7 +213,7 @@ A `node-sass-extra` config object.
 ```
 **Example**  
 ```js
-// compiles and creates source map; writes css to `css/file.css` and source map to `css/file.css.map`
+// compiles sass and creates source map; writes css to `css/file.css` and source map to `css/file.css.map`
 {
     data: '$color: red; .foo { background: $color; } ...',
     output: 'css/file.css',
@@ -227,6 +235,17 @@ A `node-sass-extra` config object.
     file: 'src/*.scss',
     output: srcFile => srcFile.replace(/.scss$/, '.min.css'),
     outputStyle: 'compressed'
+}
+```
+**Example**  
+```js
+// compiles sass, excluding files that start with an underscore
+{
+    file: 'src/*.scss',
+    globOptions: {
+        ignore: '_*.scss',
+        follow: true
+    }
 }
 ```
 <a name="module_node-sass-extra..setOutFile"></a>
@@ -269,7 +288,7 @@ output and/or source file.
 render({
     file: 'src/path/to/file.scss',
     outFile: 'css',
-    sourceMap: (outFile) => {
+    sourceMap: outFile => {
         // returns 'map/file.css.map';
         return outFile.replace(/css\//, 'map/');
     }

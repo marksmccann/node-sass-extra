@@ -18,20 +18,21 @@ const pkg = require('./package.json');
  * @property {string|string[]} data - String(s) to be compiled.
  * @property {string|string[]} file - File(s) to be compiled; can be a file path or a glob pattern.
  * @property {string|module:node-sass-extra~setOutFile} output - The output destination; can be a file path, a directory, or a {@link module:node-sass-extra~setOutFile|callback} that returns a file path or directory. Must be/return a file path when paried with `data`. If provided, files will be written to disk.
- * @property {string|module:node-sass-extra~setOutFile} outFile - The output destination; can be a file path, a directory, or a {@link module:node-sass-extra~setOutFile|callback} that returns a file path or directory. Must be/return a file path when paried with `data`. `output` will override this value if provided.
- * @property {string|module:node-sass-extra~setSourceMap} sourceMap - The source map destination; can be a boolean, a file path, a directory, or a {@link module:node-sass-extra~setSourceMap|callback} that returns a boolean, file path or directory. If a boolean or directory, the file will be named after the output file.
+ * @property {string|module:node-sass-extra~setOutFile} outFile - The output destination; can be a file path, a directory, or a {@link module:node-sass-extra~setOutFile|callback} that returns a file path or directory. Must be/return a file path when paried with `data`. `output` will override this value if provided. Does NOT write files to disk.
+ * @property {string|module:node-sass-extra~setSourceMap} sourceMap - The source map destination; can be a boolean, a file path, a directory, or a {@link module:node-sass-extra~setSourceMap|callback} that returns a boolean, file path or directory. If a boolean or directory, the file will be named after the output file. If paired with `output`, source maps will be written to disk.
+ * @property {object} globOptions - The {@link external:globOptions|configuration options} for the glob pattern.
  * @property {*} ... - {@link external:nodeSassOptions}
  * @augments external:nodeSassOptions
  *
  * @example
- * // compiles and writes file
+ * // compiles a single file and writes to disk
  * {
  *     file: 'src/file.scss',
  *     output: 'css/file.css'
  * }
  *
  * @example
- * // compiles and creates source maps, but does NOT write them
+ * // compiles sass and creates source maps, but does NOT write them
  * {
  *     file: 'src/*.scss',
  *     outFile: 'css',
@@ -39,7 +40,7 @@ const pkg = require('./package.json');
  * }
  *
  * @example
- * // compiles and creates source maps; writes css to `css/` and source maps to `maps/`
+ * // compiles sass and creates source maps; writes css to `css/` and source maps to `maps/`
  * {
  *     file: ['src/file1.scss', 'src/file2.scss'],
  *     output: 'css',
@@ -47,7 +48,7 @@ const pkg = require('./package.json');
  * }
  *
  * @example
- * // compiles and creates source map; writes css to `css/file.css` and source map to `css/file.css.map`
+ * // compiles sass and creates source map; writes css to `css/file.css` and source map to `css/file.css.map`
  * {
  *     data: '$color: red; .foo { background: $color; } ...',
  *     output: 'css/file.css',
@@ -67,6 +68,16 @@ const pkg = require('./package.json');
  *     file: 'src/*.scss',
  *     output: srcFile => srcFile.replace(/.scss$/, '.min.css'),
  *     outputStyle: 'compressed'
+ * }
+ *
+ * @example
+ * // compiles sass, excluding files that start with an underscore
+ * {
+ *     file: 'src/*.scss',
+ *     globOptions: {
+ *         ignore: '_*.scss',
+ *         follow: true
+ *     }
  * }
  */
 
@@ -99,7 +110,7 @@ const pkg = require('./package.json');
  * render({
  *     file: 'src/path/to/file.scss',
  *     outFile: 'css',
- *     sourceMap: (outFile) => {
+ *     sourceMap: outFile => {
  *         // returns 'map/file.css.map';
  *         return outFile.replace(/css\//, 'map/');
  *     }
@@ -119,6 +130,11 @@ const pkg = require('./package.json');
 /**
  * @external nodeSassError
  * @see https://github.com/sass/node-sass#error-object
+ */
+
+/**
+ * @external globOptions
+ * @see https://www.npmjs.com/package/glob#options
  */
 
 /**
@@ -192,12 +208,13 @@ function joinSourceFiles(files) {
  * Retrieves a list of file paths that match a given glob pattern.
  *
  * @param {string} pattern - a glob pattern
+ * @param {object} [options] - glob config
  * @returns {Promise}
  * @private
  */
-function getGlobMatches(pattern) {
+function getGlobMatches(pattern, options = {}) {
     return new Promise((resolve, reject) => {
-        glob(pattern, (err, matches) => {
+        glob(pattern, options, (err, matches) => {
             /* istanbul ignore next */
             if (err) {
                 reject(err);
@@ -212,13 +229,14 @@ function getGlobMatches(pattern) {
  * Synchronously takes source file(s) and returns a list of files to be compiled.
  *
  * @param {string|string[]} sources - file paths or globs
+ * @param {object} [globOptions] - glob config
  * @returns {string[]}
  * @private
  */
-function getSourceFilesSync(sources) {
+function getSourceFilesSync(sources, globOptions) {
     return arrayify(sources).reduce((sourceFiles, path) => {
         if (glob.hasMagic(path)) {
-            sourceFiles = sourceFiles.concat(glob.sync(path));
+            sourceFiles = sourceFiles.concat(glob.sync(path, globOptions));
         } else {
             sourceFiles.push(path);
         }
@@ -231,18 +249,21 @@ function getSourceFilesSync(sources) {
  * Asynchronously takes source file(s) and returns a list of files to be compiled.
  *
  * @param {string|string[]} sources - file paths or globs
+ * @param {object} [globOptions] - glob config
  * @returns {string[]}
  * @private
  * @async
  */
-async function getSourceFiles(sources) {
+async function getSourceFiles(sources, globOptions) {
     let sourceFiles = [];
 
     // asynchronously map through sources in order, resolving globs
     // and collecting in a single array.
     for (const path of arrayify(sources)) {
         if (glob.hasMagic(path)) {
-            sourceFiles = sourceFiles.concat(await getGlobMatches(path));
+            sourceFiles = sourceFiles.concat(
+                await getGlobMatches(path, globOptions)
+            );
         } else {
             sourceFiles.push(path);
         }
@@ -570,8 +591,8 @@ function validateOptions(options) {
  */
 async function render(options, callback) {
     try {
-        const { data, file, output } = validateOptions(options);
-        const sources = data || (await getSourceFiles(file));
+        const { data, file, output, globOptions } = validateOptions(options);
+        const sources = data || (await getSourceFiles(file, globOptions));
         let tasks = arrayify(getTasks(sources, options));
 
         if (tasks[0].outFile) {
@@ -629,8 +650,8 @@ async function render(options, callback) {
  * });
  */
 function renderSync(options) {
-    const { data, file, output } = validateOptions(options);
-    const sources = data || getSourceFilesSync(file);
+    const { data, file, output, globOptions } = validateOptions(options);
+    const sources = data || getSourceFilesSync(file, globOptions);
     let tasks = arrayify(getTasks(sources, options));
 
     if (tasks[0].outFile) {
