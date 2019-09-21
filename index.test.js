@@ -221,13 +221,22 @@ describe('index.js', () => {
 
         test('accepts a single glob source', async () => {
             const results = await render(testConfig.globSource);
-            expect(results.length).toBe(3);
+            expect(results.length).toBe(4);
             expect(areAllCompiled(results)).toBe(true);
         });
 
         test('accepts multiple glob sources', async () => {
             const results = await render(testConfig.multiGlobSource);
-            expect(results.length).toBe(4);
+            expect(results.length).toBe(5);
+            expect(areAllCompiled(results)).toBe(true);
+        });
+
+        test('exclude files via glob config', async () => {
+            const results = await renderSync({
+                ...testConfig.globSource,
+                globOptions: { ignore: '**/_*' },
+            });
+            expect(results.length).toBe(3);
             expect(areAllCompiled(results)).toBe(true);
         });
 
@@ -527,13 +536,22 @@ describe('index.js', () => {
 
         test('accepts a single glob source', () => {
             const results = renderSync(testConfig.globSource);
-            expect(results.length).toBe(3);
+            expect(results.length).toBe(4);
             expect(areAllCompiled(results)).toBe(true);
         });
 
         test('accepts multiple glob sources', () => {
             const results = renderSync(testConfig.multiGlobSource);
-            expect(results.length).toBe(4);
+            expect(results.length).toBe(5);
+            expect(areAllCompiled(results)).toBe(true);
+        });
+
+        test('exclude files via glob config', () => {
+            const results = renderSync({
+                ...testConfig.globSource,
+                globOptions: { ignore: '**/_*' },
+            });
+            expect(results.length).toBe(3);
             expect(areAllCompiled(results)).toBe(true);
         });
 
