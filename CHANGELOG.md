@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.2.0](https://github.com/marksmccann/node-sass-extra/compare/v0.1.0...v0.2.0) (2019-09-22)
+
+
+### Features
+
+* glob config options exposed ([d03e98a](https://github.com/marksmccann/node-sass-extra/commit/d03e98a)), closes [#39](https://github.com/marksmccann/node-sass-extra/issues/39)
+
+
+
 ## 0.1.0 (2019-09-15)
 
 
