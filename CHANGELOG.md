@@ -35,8 +35,3 @@ All notable changes to this project will be documented in this file. See [standa
 * project setup: npm, test, lint, format ([bbdcc1f](https://github.com/marksmccann/node-sass-extra/commit/bbdcc1f)), closes [#1](https://github.com/marksmccann/node-sass-extra/issues/1)
 * support for `outFile` and `sourceMap` node-sass config options ([b261d06](https://github.com/marksmccann/node-sass-extra/commit/b261d06)), closes [#18](https://github.com/marksmccann/node-sass-extra/issues/18)
 
-
-
-# Changelog
-
-All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
