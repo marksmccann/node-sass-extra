@@ -31,7 +31,7 @@ const config = {
 
     // output to a directory
     // output: 'dest',
-    outFile: 'dest',
+    outFile: 'dest'
 
     // dynamic output
     // output: sourcePath => {

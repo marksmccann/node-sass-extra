@@ -15,7 +15,6 @@
     "prerelease": "git checkout master && git pull origin master && npm i && npm run validate",
     "release": "standard-version",
     "postrelease": "git push --follow-tags origin master && npm publish",
-    "docs": "jsdoc2md index.js -t README_TPL.hbs > README.md; echo",
     "validate": "npm run lint && npm run test && prettier --check \"./*.js\""
   },
   "repository": {
@@ -59,10 +58,8 @@
     "commitizen": "^4.0.3",
     "cz-conventional-changelog": "^3.0.2",
     "eslint": "^6.4.0",
-    "eslint-plugin-jsdoc": "^15.8.3",
     "husky": "^3.0.5",
     "jest": "^24.8.0",
-    "jsdoc-to-markdown": "^5.0.0",
     "lint-staged": "^9.2.0",
     "os": "^0.1.1",
     "prettier": "1.18.2",
@@ -77,7 +74,6 @@
   "lint-staged": {
     "*.js": [
       "prettier --write",
-      "npm run docs",
       "git add"
     ]
   },
