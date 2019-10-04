@@ -11,74 +11,73 @@ const dynamicOutputDir = path.join(outputDir, 'dynamic');
 
 const dataSources = [
     '$color: red; body { color: $color; }',
-    '$padding: 10px; body { padding: $padding; }',
+    '$padding: 10px; body { padding: $padding; }'
 ];
 
 const testConfig = {
     sourceDir,
     outputDir,
     singleSource: {
-        file: path.join(sourceDir, 'test-scss-1.scss'),
+        file: path.join(sourceDir, 'test-scss-1.scss')
     },
     unknownSource: {
-        file: path.join(sourceDir, 'unknown.scss'),
+        file: path.join(sourceDir, 'unknown.scss')
     },
     multiSource: {
         file: [
             path.join(sourceDir, 'test-scss-1.scss'),
             path.join(sourceDir, 'nested/test-scss-2.scss'),
-            path.join(sourceDir, 'nested/deeper/test-scss-3.scss'),
-        ],
+            path.join(sourceDir, 'nested/deeper/test-scss-3.scss')
+        ]
     },
     globSource: {
-        file: path.join(sourceDir, '**/*.scss'),
+        file: path.join(sourceDir, '**/*.scss')
     },
     multiGlobSource: {
         file: [
             path.join(sourceDir, '**/*.scss'),
-            path.join(sourceDir, '**/*.sass'),
-        ],
+            path.join(sourceDir, '**/*.sass')
+        ]
     },
     dataSource: {
-        data: dataSources[0],
+        data: dataSources[0]
     },
     multiDataSource: {
-        data: dataSources,
+        data: dataSources
     },
     singleOutput: {
-        output: path.join(outputDir, 'test.css'),
+        output: path.join(outputDir, 'test.css')
     },
     multiOutput: {
-        output: outputDir,
+        output: outputDir
     },
     dynamicOutput: {
-        output: sourceFile => sourceFile.replace(outputDir, dynamicOutputDir),
+        output: sourceFile => sourceFile.replace(outputDir, dynamicOutputDir)
     },
     dynamicOutputDir: {
-        output: () => dynamicOutputDir,
+        output: () => dynamicOutputDir
     },
     singleOutFile: {
-        outFile: path.join(outputDir, 'test.css'),
+        outFile: path.join(outputDir, 'test.css')
     },
     multiOutFile: {
-        outFile: outputDir,
+        outFile: outputDir
     },
     dynamicOutFile: {
-        outFile: sourceFile => sourceFile.replace(outputDir, dynamicOutputDir),
+        outFile: sourceFile => sourceFile.replace(outputDir, dynamicOutputDir)
     },
     dynamicOutFileDir: {
-        outFile: () => dynamicOutputDir,
+        outFile: () => dynamicOutputDir
     },
     sourceMap: {
-        sourceMap: true,
+        sourceMap: true
     },
     singleSourceMap: {
-        sourceMap: path.join(outputDir, 'test.css.map'),
+        sourceMap: path.join(outputDir, 'test.css.map')
     },
     dynamicSourceMap: {
-        sourceMap: sourceFile =>
-            sourceFile.replace(outputDir, dynamicOutputDir),
-    },
+        sourceMap: sourceFile => sourceFile.replace(outputDir, dynamicOutputDir)
+    }
 };
 
 describe('index.js', () => {
@@ -143,7 +142,7 @@ describe('index.js', () => {
         /* eslint-disable */
         console = {
             log: () => false,
-            error: () => false,
+            error: () => false
         };
         /* eslint-enable */
     });
@@ -195,7 +194,7 @@ describe('index.js', () => {
             await Promise.all(
                 results.map(async result => {
                     const nodeSassResult = await getNodeSassResult({
-                        file: result.stats.entry,
+                        file: result.stats.entry
                     });
 
                     expect(Object.keys(result)).toEqual(
@@ -234,7 +233,7 @@ describe('index.js', () => {
         test('exclude files via glob config', async () => {
             const results = await renderSync({
                 ...testConfig.globSource,
-                globOptions: { ignore: '**/_*' },
+                globOptions: { ignore: '**/_*' }
             });
             expect(results.length).toBe(3);
             expect(areAllCompiled(results)).toBe(true);
@@ -351,7 +350,7 @@ describe('index.js', () => {
             try {
                 await render({
                     data: dataSource,
-                    outFile: 'dir',
+                    outFile: 'dir'
                 });
             } catch (err) {
                 message = err.message;
@@ -366,7 +365,7 @@ describe('index.js', () => {
             const results = await render({
                 ...singleSource,
                 ...singleOutFile,
-                ...sourceMap,
+                ...sourceMap
             });
 
             expect(results.map).toBeDefined();
@@ -378,7 +377,7 @@ describe('index.js', () => {
             const results = await render({
                 ...singleSource,
                 ...singleOutFile,
-                ...singleSourceMap,
+                ...singleSourceMap
             });
 
             expect(results.map).toBeDefined();
@@ -390,7 +389,7 @@ describe('index.js', () => {
             const results = await render({
                 ...multiSource,
                 ...singleOutFile,
-                ...dynamicSourceMap,
+                ...dynamicSourceMap
             });
 
             expect(results.map).toBeDefined();
@@ -402,7 +401,7 @@ describe('index.js', () => {
             await render({
                 ...singleSource,
                 ...singleOutput,
-                ...singleSourceMap,
+                ...singleSourceMap
             });
 
             expect(fs.pathExistsSync(singleSourceMap.sourceMap)).toBe(true);
@@ -415,7 +414,7 @@ describe('index.js', () => {
             try {
                 await render({
                     ...singleSource,
-                    sourceMap: true,
+                    sourceMap: true
                 });
             } catch (err) {
                 message = err.message;
@@ -431,7 +430,7 @@ describe('index.js', () => {
                 await render({
                     ...singleSource,
                     outFile: outputDir,
-                    sourceMap: 'dir',
+                    sourceMap: 'dir'
                 });
             } catch (err) {
                 expect(err.message).toContain('Invalid');
@@ -458,7 +457,7 @@ describe('index.js', () => {
         test('concat data sources with single output', async () => {
             const results = await render({
                 ...testConfig.multiDataSource,
-                ...testConfig.singleOutFile,
+                ...testConfig.singleOutFile
             });
 
             const css = results.css.toString();
@@ -470,7 +469,7 @@ describe('index.js', () => {
         test('concat file sources with single output', async () => {
             const results = await render({
                 ...testConfig.multiSource,
-                ...testConfig.singleOutFile,
+                ...testConfig.singleOutFile
             });
 
             const css = results.css.toString();
@@ -508,7 +507,7 @@ describe('index.js', () => {
             results.map(result => {
                 const nodeSassResult = getNodeSassResult(
                     {
-                        file: result.stats.entry,
+                        file: result.stats.entry
                     },
                     true
                 );
@@ -549,7 +548,7 @@ describe('index.js', () => {
         test('exclude files via glob config', () => {
             const results = renderSync({
                 ...testConfig.globSource,
-                globOptions: { ignore: '**/_*' },
+                globOptions: { ignore: '**/_*' }
             });
             expect(results.length).toBe(3);
             expect(areAllCompiled(results)).toBe(true);
@@ -666,7 +665,7 @@ describe('index.js', () => {
             try {
                 renderSync({
                     data: dataSource,
-                    outFile: 'dir',
+                    outFile: 'dir'
                 });
             } catch (err) {
                 message = err.message;
@@ -681,7 +680,7 @@ describe('index.js', () => {
             const results = renderSync({
                 ...singleSource,
                 ...singleOutFile,
-                ...sourceMap,
+                ...sourceMap
             });
 
             expect(results.map).toBeDefined();
@@ -693,7 +692,7 @@ describe('index.js', () => {
             const results = renderSync({
                 ...singleSource,
                 ...singleOutFile,
-                ...singleSourceMap,
+                ...singleSourceMap
             });
 
             expect(results.map).toBeDefined();
@@ -705,7 +704,7 @@ describe('index.js', () => {
             const results = renderSync({
                 ...multiSource,
                 ...singleOutFile,
-                ...dynamicSourceMap,
+                ...dynamicSourceMap
             });
 
             expect(results.map).toBeDefined();
@@ -717,7 +716,7 @@ describe('index.js', () => {
             renderSync({
                 ...singleSource,
                 ...singleOutput,
-                ...singleSourceMap,
+                ...singleSourceMap
             });
 
             expect(fs.pathExistsSync(singleSourceMap.sourceMap)).toBe(true);
@@ -730,7 +729,7 @@ describe('index.js', () => {
             try {
                 renderSync({
                     ...singleSource,
-                    sourceMap: true,
+                    sourceMap: true
                 });
             } catch (err) {
                 message = err.message;
@@ -742,7 +741,7 @@ describe('index.js', () => {
         test('concat data sources with single output', () => {
             const results = renderSync({
                 ...testConfig.multiDataSource,
-                ...testConfig.singleOutFile,
+                ...testConfig.singleOutFile
             });
 
             const css = results.css.toString();
@@ -754,7 +753,7 @@ describe('index.js', () => {
         test('concat file sources with single output', () => {
             const results = renderSync({
                 ...testConfig.multiSource,
-                ...testConfig.singleOutFile,
+                ...testConfig.singleOutFile
             });
 
             const css = results.css.toString();
