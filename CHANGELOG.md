@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.3.0](https://github.com/marksmccann/node-sass-extra/compare/v0.1.0...v0.3.0) (2019-10-06)
+
+
+### Features
+
+* glob config options exposed ([d03e98a](https://github.com/marksmccann/node-sass-extra/commit/d03e98a)), closes [#39](https://github.com/marksmccann/node-sass-extra/issues/39)
+
+
+
 ## [0.2.0](https://github.com/marksmccann/node-sass-extra/compare/v0.1.0...v0.2.0) (2019-09-22)
 
 
@@ -34,4 +43,3 @@ All notable changes to this project will be documented in this file. See [standa
 * jsdoc ([20a9d94](https://github.com/marksmccann/node-sass-extra/commit/20a9d94)), closes [#33](https://github.com/marksmccann/node-sass-extra/issues/33)
 * project setup: npm, test, lint, format ([bbdcc1f](https://github.com/marksmccann/node-sass-extra/commit/bbdcc1f)), closes [#1](https://github.com/marksmccann/node-sass-extra/issues/1)
 * support for `outFile` and `sourceMap` node-sass config options ([b261d06](https://github.com/marksmccann/node-sass-extra/commit/b261d06)), closes [#18](https://github.com/marksmccann/node-sass-extra/issues/18)
-
