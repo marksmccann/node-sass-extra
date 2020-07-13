@@ -63,7 +63,7 @@
     "lint-staged": "^9.2.0",
     "os": "^0.1.1",
     "prettier": "1.18.2",
-    "standard-version": "^6.0.1"
+    "standard-version": "^8.0.1"
   },
   "husky": {
     "hooks": {
