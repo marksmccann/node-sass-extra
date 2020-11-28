@@ -15,7 +15,7 @@
     "prerelease": "git checkout master && git pull origin master && npm i && npm run validate",
     "release": "standard-version",
     "postrelease": "git push --follow-tags origin master && npm publish",
-    "validate": "npm run lint && npm run test && prettier --check \"./*.js\""
+    "validate": "npm run lint && npm run test"
   },
   "repository": {
     "type": "git",
@@ -50,20 +50,20 @@
   },
   "homepage": "https://github.com/marksmccann/node-sass-extra#readme",
   "dependencies": {
-    "fs-extra": "^8.1.0",
-    "glob": "^7.1.4",
-    "node-sass": "^4.12.0"
+    "fs-extra": "^9.0.1",
+    "glob": "^7.1.6",
+    "node-sass": "^5.0.0"
   },
   "devDependencies": {
-    "commitizen": "^4.0.3",
-    "cz-conventional-changelog": "^3.0.2",
-    "eslint": "^6.4.0",
+    "commitizen": "^4.2.2",
+    "cz-conventional-changelog": "^3.3.0",
+    "eslint": "^7.14.0",
     "husky": "^3.0.5",
     "jest": "^24.8.0",
     "lint-staged": "^9.2.0",
     "os": "^0.1.1",
-    "prettier": "1.18.2",
-    "standard-version": "^8.0.1"
+    "prettier": "2.2.1",
+    "standard-version": "^9.0.0"
   },
   "husky": {
     "hooks": {

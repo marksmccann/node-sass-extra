@@ -52,7 +52,7 @@ const testConfig = {
         output: outputDir
     },
     dynamicOutput: {
-        output: sourceFile => sourceFile.replace(outputDir, dynamicOutputDir)
+        output: (sourceFile) => sourceFile.replace(outputDir, dynamicOutputDir)
     },
     dynamicOutputDir: {
         output: () => dynamicOutputDir
@@ -64,7 +64,7 @@ const testConfig = {
         outFile: outputDir
     },
     dynamicOutFile: {
-        outFile: sourceFile => sourceFile.replace(outputDir, dynamicOutputDir)
+        outFile: (sourceFile) => sourceFile.replace(outputDir, dynamicOutputDir)
     },
     dynamicOutFileDir: {
         outFile: () => dynamicOutputDir
@@ -76,7 +76,8 @@ const testConfig = {
         sourceMap: path.join(outputDir, 'test.css.map')
     },
     dynamicSourceMap: {
-        sourceMap: sourceFile => sourceFile.replace(outputDir, dynamicOutputDir)
+        sourceMap: (sourceFile) =>
+            sourceFile.replace(outputDir, dynamicOutputDir)
     }
 };
 
@@ -172,8 +173,8 @@ describe('index.js', () => {
     // test `render` method
     //
     describe('sass.render()', () => {
-        test('returns a promise', done => {
-            render(testConfig.singleSource).then(results => {
+        test('returns a promise', (done) => {
+            render(testConfig.singleSource).then((results) => {
                 expect(typeof results).toEqual('object');
                 done();
             });
@@ -192,7 +193,7 @@ describe('index.js', () => {
             const results = await render(multiSource);
 
             await Promise.all(
-                results.map(async result => {
+                results.map(async (result) => {
                     const nodeSassResult = await getNodeSassResult({
                         file: result.stats.entry
                     });
@@ -282,7 +283,7 @@ describe('index.js', () => {
             const renderedFiles = await getOutputCSSFiles();
 
             let areAllDynamic = true;
-            renderedFiles.forEach(renderedFile => {
+            renderedFiles.forEach((renderedFile) => {
                 if (/dynamic/.test(renderedFile) === false) {
                     areAllDynamic = false;
                 }
@@ -298,7 +299,7 @@ describe('index.js', () => {
             const renderedFiles = await getOutputCSSFiles();
 
             let areAllDynamic = true;
-            renderedFiles.forEach(renderedFile => {
+            renderedFiles.forEach((renderedFile) => {
                 if (/dynamic/.test(renderedFile) === false) {
                     areAllDynamic = false;
                 }
@@ -437,7 +438,7 @@ describe('index.js', () => {
             }
         });
 
-        test('asynchronously compile sass via a callback', done => {
+        test('asynchronously compile sass via a callback', (done) => {
             render(testConfig.multiDataSource, (error, results) => {
                 expect(error).toBe(null);
                 expect(results.length).toBe(2);
@@ -446,7 +447,7 @@ describe('index.js', () => {
             });
         });
 
-        test('asynchronously throws error via callback', done => {
+        test('asynchronously throws error via callback', (done) => {
             render(testConfig.unknownSource, (error, results) => {
                 expect(error.message).toContain('not found');
                 expect(results).toBe(undefined);
@@ -504,7 +505,7 @@ describe('index.js', () => {
             const { multiSource } = testConfig;
             const results = renderSync(multiSource);
 
-            results.map(result => {
+            results.map((result) => {
                 const nodeSassResult = getNodeSassResult(
                     {
                         file: result.stats.entry
@@ -597,7 +598,7 @@ describe('index.js', () => {
             const renderedFiles = getOutputCSSFiles(true);
 
             let areAllDynamic = true;
-            renderedFiles.forEach(renderedFile => {
+            renderedFiles.forEach((renderedFile) => {
                 if (/dynamic/.test(renderedFile) === false) {
                     areAllDynamic = false;
                 }
@@ -613,7 +614,7 @@ describe('index.js', () => {
             const renderedFiles = getOutputCSSFiles(true);
 
             let areAllDynamic = true;
-            renderedFiles.forEach(renderedFile => {
+            renderedFiles.forEach((renderedFile) => {
                 if (/dynamic/.test(renderedFile) === false) {
                     areAllDynamic = false;
                 }

@@ -49,7 +49,7 @@ function marshalArray(arrayData) {
  */
 function joinSourceFiles(files) {
     return arrayify(files)
-        .map(file => `@import '${path.resolve(file)}';`)
+        .map((file) => `@import '${path.resolve(file)}';`)
         .join('\n');
 }
 
@@ -207,7 +207,7 @@ function getSourceMap(outFile, sourceMap) {
  */
 function getTasks(sources, options) {
     if (Array.isArray(sources)) {
-        return sources.map(source => getTasks(source, options));
+        return sources.map((source) => getTasks(source, options));
     }
 
     let { output, outFile, sourceMap, ...nodeSassOptions } = options;
@@ -260,7 +260,7 @@ function reduceTasksByOutFile(tasks) {
     });
 
     // map reduced tasks and concat their sources
-    return reducedTasks.map(task => {
+    return reducedTasks.map((task) => {
         const sources = task[sourceType];
 
         if (sources.length === 1) {
@@ -293,7 +293,7 @@ function validateOptions(options) {
         );
     }
 
-    if (sourceMap && (!output && !outFile)) {
+    if (sourceMap && !output && !outFile) {
         throw new Error(
             'No output specified: either the "output" or "outFile" option is required with "sourceMap".'
         );
@@ -315,7 +315,7 @@ async function render(options, callback) {
             tasks = reduceTasksByOutFile(tasks);
         }
 
-        const compiled = await Promise.all(tasks.map(task => compile(task)));
+        const compiled = await Promise.all(tasks.map((task) => compile(task)));
 
         // write files to disk?
         if (output) {
@@ -361,7 +361,7 @@ function renderSync(options) {
         tasks = reduceTasksByOutFile(tasks);
     }
 
-    const compiled = tasks.map(task => compileSync(task));
+    const compiled = tasks.map((task) => compileSync(task));
 
     // write files to disk?
     if (output) {
