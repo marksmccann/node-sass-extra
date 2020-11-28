@@ -73,13 +73,12 @@ function getGlobMatches(pattern, options = {}) {
  * Synchronously takes source file(s) and returns a list of files to be compiled.
  */
 function getSourceFilesSync(sources, globOptions) {
-    return arrayify(sources).reduce((sourceFiles, path) => {
-        if (glob.hasMagic(path)) {
-            sourceFiles = sourceFiles.concat(glob.sync(path, globOptions));
-        } else {
-            sourceFiles.push(path);
+    return arrayify(sources).reduce((sourceFiles, sourceFilePath) => {
+        if (glob.hasMagic(sourceFilePath)) {
+            return sourceFiles.concat(glob.sync(sourceFilePath, globOptions));
         }
 
+        sourceFiles.push(sourceFilePath);
         return sourceFiles;
     }, []);
 }
@@ -90,17 +89,19 @@ function getSourceFilesSync(sources, globOptions) {
 async function getSourceFiles(sources, globOptions) {
     let sourceFiles = [];
 
+    /* eslint-disable no-await-in-loop, no-restricted-syntax */
     // asynchronously map through sources in order, resolving globs
     // and collecting in a single array.
-    for (const path of arrayify(sources)) {
-        if (glob.hasMagic(path)) {
+    for (const sourceFilePath of arrayify(sources)) {
+        if (glob.hasMagic(sourceFilePath)) {
             sourceFiles = sourceFiles.concat(
-                await getGlobMatches(path, globOptions)
+                await getGlobMatches(sourceFilePath, globOptions)
             );
         } else {
-            sourceFiles.push(path);
+            sourceFiles.push(sourceFilePath);
         }
     }
+    /* eslint-enable no-await-in-loop, no-restricted-syntax */
 
     return sourceFiles;
 }
@@ -140,13 +141,17 @@ function writeFileSync(content, filePath) {
  * Asynchronously writes content to disk at the given destination; returns promise.
  */
 async function writeFile(content, filePath) {
+    let writeFilePromise;
+
     try {
         await fs.ensureDir(path.dirname(filePath));
-        return fs.writeFile(filePath, content);
+        writeFilePromise = fs.writeFile(filePath, content);
     } catch (err) {
         /* istanbul ignore next */
         Promise.reject(err);
     }
+
+    return writeFilePromise;
 }
 
 /**
@@ -154,27 +159,29 @@ async function writeFile(content, filePath) {
  * config option; returns an absolute path.
  */
 function getOutFile(source, outFile) {
+    let resolvedOutFile = outFile;
+
     if (isFile(source)) {
         // dynamic output; run the given iterator function on each source
         if (typeof outFile === 'function') {
-            outFile = outFile(source);
+            resolvedOutFile = outFile(source);
         }
 
         // output is a directory; append the source's basename
-        if (!isFile(outFile)) {
-            outFile = path.join(outFile, path.basename(source));
+        if (!isFile(resolvedOutFile)) {
+            resolvedOutFile = path.join(resolvedOutFile, path.basename(source));
         }
     }
 
     // throw error if the determined output is not a valid file path
-    if (!isFile(outFile)) {
+    if (!isFile(resolvedOutFile)) {
         throw new Error(
             `Invalid output: "${outFile}" is not a valid file path for "output" or "outFile".`
         );
     }
 
     // resolve and ensure '.css' extension
-    return path.resolve(outFile.replace(/\.(s[ca]|c)ss$/, '.css'));
+    return path.resolve(resolvedOutFile.replace(/\.(s[ca]|c)ss$/, '.css'));
 }
 
 /**
@@ -182,23 +189,28 @@ function getOutFile(source, outFile) {
  * config option and an output file path; returns an absolute path.
  */
 function getSourceMap(outFile, sourceMap) {
+    let resolvedSourceMap = sourceMap;
+
     // dynamic source map; run the given iterator function
     if (typeof sourceMap === 'function') {
-        sourceMap = sourceMap(outFile);
+        resolvedSourceMap = sourceMap(outFile);
     }
 
     // source map is a boolean; use the output file
     if (sourceMap === true) {
-        sourceMap = outFile;
+        resolvedSourceMap = outFile;
     }
 
     // source map is a directory; append the output's basename
-    if (!isFile(sourceMap)) {
-        sourceMap = path.join(sourceMap, path.basename(outFile));
+    if (!isFile(resolvedSourceMap)) {
+        resolvedSourceMap = path.join(
+            resolvedSourceMap,
+            path.basename(outFile)
+        );
     }
 
     // resolve and ensure '.map' extension
-    return path.resolve(sourceMap.replace(/(\.map)?$/, '.map'));
+    return path.resolve(resolvedSourceMap.replace(/(\.map)?$/, '.map'));
 }
 
 /**
@@ -210,10 +222,9 @@ function getTasks(sources, options) {
         return sources.map((source) => getTasks(source, options));
     }
 
-    let { output, outFile, sourceMap, ...nodeSassOptions } = options;
+    const { output, sourceMap, ...nodeSassOptions } = options;
+    const outFile = output || options.outFile;
     const task = {};
-
-    outFile = output || outFile;
 
     if (isFile(sources)) {
         task.file = sources;
@@ -246,14 +257,16 @@ function reduceTasksByOutFile(tasks) {
     const reducedTasks = [];
 
     // groups tasks with common output files, arrayifing their sources
-    arrayify(tasks).forEach(({ ...task }) => {
-        const index = outFileLookup.indexOf(task.outFile);
+    arrayify(tasks).forEach((task) => {
+        const { outFile } = task;
+        const index = outFileLookup.indexOf(outFile);
         const source = task[sourceType];
+        const modifiedTask = { ...task };
 
         if (index === -1) {
-            outFileLookup.push(task.outFile);
-            task[sourceType] = arrayify(source);
-            reducedTasks.push(task);
+            outFileLookup.push(outFile);
+            modifiedTask[sourceType] = arrayify(source);
+            reducedTasks.push(modifiedTask);
         } else {
             reducedTasks[index][sourceType].push(source);
         }
@@ -262,18 +275,20 @@ function reduceTasksByOutFile(tasks) {
     // map reduced tasks and concat their sources
     return reducedTasks.map((task) => {
         const sources = task[sourceType];
+        const modifiedTask = { ...task };
 
         if (sources.length === 1) {
-            task[sourceType] = sources[0];
+            const [firstSource] = sources;
+            modifiedTask[sourceType] = firstSource;
         } else {
-            delete task.file;
-            task.data =
+            delete modifiedTask.file;
+            modifiedTask.data =
                 sourceType === 'data'
                     ? sources.join('\n')
                     : joinSourceFiles(sources);
         }
 
-        return task;
+        return modifiedTask;
     });
 }
 
@@ -347,6 +362,8 @@ async function render(options, callback) {
             throw err;
         }
     }
+
+    return undefined;
 }
 
 /**

@@ -31,7 +31,7 @@ const config = {
 
     // output to a directory
     // output: 'dest',
-    outFile: 'dest'
+    outFile: 'dest',
 
     // dynamic output
     // output: sourcePath => {
@@ -42,9 +42,9 @@ const config = {
     // },
 
     // dynamic output returns a directory
-    // output: () => {
-    //     return 'dest';
-    // },
+    output: () => {
+        return 'dest';
+    }
     // outFile: () => {
     //     return 'dest';
     // },
@@ -86,18 +86,18 @@ const config = {
 //
 // Sync
 //
-console.log('\n--- Sync ---\n', sass.renderSync(config));
+// console.log('\n--- Sync ---\n', sass.renderSync(config));
 
 //
 // Async
 //
-// sass.render(config)
-//     .then(compiled => {
-//         console.log('\n--- Async ---\n', compiled);
-//     })
-//     .catch(err => {
-//         console.log(err);
-//     });
+sass.render(config)
+    .then((compiled) => {
+        // console.log('\n--- Async ---\n', compiled);
+    })
+    .catch((err) => {
+        console.log(err);
+    });
 
 //
 // Async (w/ Callback)
