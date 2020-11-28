@@ -1,6 +1,6 @@
 {
   "name": "node-sass-extra",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "description": "A drop-in replacement for node-sass' Node API that adds support for globs, promises and more.",
   "main": "index.js",
   "engines": {
