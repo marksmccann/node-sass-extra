@@ -1,13 +1,13 @@
-const sass = require('./index');
 const nodeSassBaseModule = require('node-sass');
-const { render, renderSync } = sass;
 const path = require('path');
 const glob = require('glob');
 const fs = require('fs-extra');
+const sass = require('./index');
 
-const sourceDir = path.resolve(__dirname, 'test-files');
-const outputDir = path.resolve(__dirname, 'test-compiled');
-const dynamicOutputDir = path.join(outputDir, 'dynamic');
+const { render, renderSync } = sass;
+const SOURCE_DIR = path.resolve(__dirname, 'test-files');
+const OUTPUT_DIR = path.resolve(__dirname, 'test-compiled');
+const DYNAMIC_OUTPUT_DIR = path.join(OUTPUT_DIR, 'dynamic');
 
 const dataSources = [
     '$color: red; body { color: $color; }',
@@ -15,28 +15,28 @@ const dataSources = [
 ];
 
 const testConfig = {
-    sourceDir,
-    outputDir,
+    sourceDir: SOURCE_DIR,
+    outputDir: OUTPUT_DIR,
     singleSource: {
-        file: path.join(sourceDir, 'test-scss-1.scss')
+        file: path.join(SOURCE_DIR, 'test-scss-1.scss')
     },
     unknownSource: {
-        file: path.join(sourceDir, 'unknown.scss')
+        file: path.join(SOURCE_DIR, 'unknown.scss')
     },
     multiSource: {
         file: [
-            path.join(sourceDir, 'test-scss-1.scss'),
-            path.join(sourceDir, 'nested/test-scss-2.scss'),
-            path.join(sourceDir, 'nested/deeper/test-scss-3.scss')
+            path.join(SOURCE_DIR, 'test-scss-1.scss'),
+            path.join(SOURCE_DIR, 'nested/test-scss-2.scss'),
+            path.join(SOURCE_DIR, 'nested/deeper/test-scss-3.scss')
         ]
     },
     globSource: {
-        file: path.join(sourceDir, '**/*.scss')
+        file: path.join(SOURCE_DIR, '**/*.scss')
     },
     multiGlobSource: {
         file: [
-            path.join(sourceDir, '**/*.scss'),
-            path.join(sourceDir, '**/*.sass')
+            path.join(SOURCE_DIR, '**/*.scss'),
+            path.join(SOURCE_DIR, '**/*.sass')
         ]
     },
     dataSource: {
@@ -46,38 +46,40 @@ const testConfig = {
         data: dataSources
     },
     singleOutput: {
-        output: path.join(outputDir, 'test.css')
+        output: path.join(OUTPUT_DIR, 'test.css')
     },
     multiOutput: {
-        output: outputDir
+        output: OUTPUT_DIR
     },
     dynamicOutput: {
-        output: (sourceFile) => sourceFile.replace(outputDir, dynamicOutputDir)
+        output: (sourceFile) =>
+            sourceFile.replace(OUTPUT_DIR, DYNAMIC_OUTPUT_DIR)
     },
     dynamicOutputDir: {
-        output: () => dynamicOutputDir
+        output: () => DYNAMIC_OUTPUT_DIR
     },
     singleOutFile: {
-        outFile: path.join(outputDir, 'test.css')
+        outFile: path.join(OUTPUT_DIR, 'test.css')
     },
     multiOutFile: {
-        outFile: outputDir
+        outFile: OUTPUT_DIR
     },
     dynamicOutFile: {
-        outFile: (sourceFile) => sourceFile.replace(outputDir, dynamicOutputDir)
+        outFile: (sourceFile) =>
+            sourceFile.replace(OUTPUT_DIR, DYNAMIC_OUTPUT_DIR)
     },
     dynamicOutFileDir: {
-        outFile: () => dynamicOutputDir
+        outFile: () => DYNAMIC_OUTPUT_DIR
     },
     sourceMap: {
         sourceMap: true
     },
     singleSourceMap: {
-        sourceMap: path.join(outputDir, 'test.css.map')
+        sourceMap: path.join(OUTPUT_DIR, 'test.css.map')
     },
     dynamicSourceMap: {
         sourceMap: (sourceFile) =>
-            sourceFile.replace(outputDir, dynamicOutputDir)
+            sourceFile.replace(OUTPUT_DIR, DYNAMIC_OUTPUT_DIR)
     }
 };
 
@@ -121,8 +123,6 @@ describe('index.js', () => {
     }
 
     function areAllCompiled(results) {
-        results = [].concat(results);
-
         let allHaveCSS = true;
         results.forEach(({ css }) => {
             if (!css) {
